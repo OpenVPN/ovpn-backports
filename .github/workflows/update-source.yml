@@ -21,38 +21,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Generate the latest sources
-      - name: Generate ovpn Sources
-        run: |
-          chmod +x ./backports-ctl.sh
-          ./backports-ctl.sh get-ovpn
-
       - name: Configure Git
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      # Push the new sources to the "sources" branch
-      - name: Push to sources Branch
+      - name: Checkout Sources and Merge with Main
         run: |
           git fetch origin sources || true
-          git reset origin/sources || git checkout -b sources
+          git checkout -b sources origin/sources || git checkout -b sources
 
-          # Force-add the required files
+          # There should be no merge conflicts, but if there are, we want to
+          # keep the changes from the main branch
+          git merge origin/main --no-commit --no-ff -X theirs
+
+      - name: Generate the new source files
+        run: |
+          chmod +x ./backports-ctl.sh
+          ./backports-ctl.sh get-ovpn
+
+      - name: Commit and Push Changes
+        run: |
           git add -f drivers/net/ovpn include/uapi/linux/ovpn.h
           git add .
 
-          # Generate a tag version string using the current date
           VERSION=$(date +%Y%m%d)
+          git commit -m "Generated sources for v${VERSION}"
+          git tag -f "v${VERSION}"
 
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "update sources v$VERSION"
-            git push origin HEAD:sources
-          else
-            echo "No changes detected; nothing to commit on 'sources'."
-          fi
-
-          git tag -f "v$VERSION"
+          git push origin sources
           git push origin --tags --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
