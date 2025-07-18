@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/udp.c b/drivers/net/ovpn/udp.c
-index bff0094..7b78ab5 100644
+index 60435a2..1f4150c 100644
 --- a/drivers/net/ovpn/udp.c
 +++ b/drivers/net/ovpn/udp.c
 @@ -14,7 +14,9 @@
@@ -39,7 +39,7 @@ index bff0094..7b78ab5 100644
  		ret = PTR_ERR(dst);
  		net_dbg_ratelimited("%s: no route to host %pISpc: %d\n",
  				    netdev_name(peer->ovpn->dev),
-@@ -435,12 +447,18 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
+@@ -436,12 +448,18 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
  	struct sock *sk = ovpn_sock->sk;
  
  	/* Re-enable multicast loopback */
