@@ -48,7 +48,7 @@ static inline int ovpn_skb_send_sock_locked_with_flags(struct sock *sk,
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) || \
 	SUSE_PRODUCT_CODE >= SUSE_PRODUCT(1, 15, 6, 0)
-	if (!sendmsg_locked)
+	if (unlikely(!sendmsg_locked))
 		goto error;
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) */
 

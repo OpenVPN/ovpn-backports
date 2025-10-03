@@ -32,8 +32,14 @@
 
 static struct proto ovpn_tcp_prot __ro_after_init;
 static struct proto_ops ovpn_tcp_ops __ro_after_init;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+static struct proto ovpn_tcp6_prot;
+static struct proto_ops ovpn_tcp6_ops;
+static DEFINE_MUTEX(tcp6_prot_mutex);
+#else
 static struct proto ovpn_tcp6_prot __ro_after_init;
 static struct proto_ops ovpn_tcp6_ops __ro_after_init;
+#endif
 
 static int ovpn_tcp_parse(struct strparser *strp, struct sk_buff *skb)
 {
@@ -561,6 +567,14 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
 		ovpn_sock->sk->sk_prot = &ovpn_tcp_prot;
 		ovpn_sock->sk->sk_socket->ops = &ovpn_tcp_ops;
 	} else {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+		mutex_lock(&tcp6_prot_mutex);
+		if (!ovpn_tcp6_prot.recvmsg)
+			ovpn_tcp_build_protos(&ovpn_tcp6_prot, &ovpn_tcp6_ops,
+					      ovpn_sock->sk->sk_prot,
+					      ovpn_sock->sk->sk_socket->ops);
+		mutex_unlock(&tcp6_prot_mutex);
+#endif
 		ovpn_sock->sk->sk_prot = &ovpn_tcp6_prot;
 		ovpn_sock->sk->sk_socket->ops = &ovpn_tcp6_ops;
 	}
@@ -630,15 +644,9 @@ static void ovpn_tcp_build_protos(struct proto *new_prot,
 /* Initialize TCP static objects */
 void __init ovpn_tcp_init(void)
 {
-#if IS_ENABLED(CONFIG_IPV6) && LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 0)
-	struct proto *tcpv6_prot_p, tcpv6_prot;
-#endif
-#if IS_ENABLED(CONFIG_IPV6) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
-	struct proto_ops *inet6_stream_ops_p, inet6_stream_ops;
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) || \
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)) || \
 	SUSE_PRODUCT_CODE >= SUSE_PRODUCT(1, 15, 6, 0)
-	sendmsg_locked = (sendmsg_locked_t)kallsyms_lookup_name("sendmsg_locked");
+	sendmsg_locked = (sendmsg_locked_t)get_unexported_symbol("sendmsg_locked");
 	if (!sendmsg_locked) {
 		pr_err("sendmsg_locked symbol not found\n");
 		return;
@@ -648,24 +656,10 @@ void __init ovpn_tcp_init(void)
 	ovpn_tcp_build_protos(&ovpn_tcp_prot, &ovpn_tcp_ops, &tcp_prot,
 			      &inet_stream_ops);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
 #if IS_ENABLED(CONFIG_IPV6)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 0)
-	tcpv6_prot_p = (struct proto *)kallsyms_lookup_name("tcpv6_prot");
-	if (!tcpv6_prot_p) {
-		pr_err("tcpv6_prot symbol not found\n");
-		return;
-	}
-	tcpv6_prot = *tcpv6_prot_p;
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
-	inet6_stream_ops_p = (struct proto_ops *)kallsyms_lookup_name("inet6_stream_ops");
-	if (!inet6_stream_ops_p) {
-		pr_err("inet6_stream_ops symbol not found\n");
-		return;
-	}
-	inet6_stream_ops = *inet6_stream_ops_p;
-#endif
 	ovpn_tcp_build_protos(&ovpn_tcp6_prot, &ovpn_tcp6_ops, &tcpv6_prot,
 			      &inet6_stream_ops);
 #endif
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0) */
 }
