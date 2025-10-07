@@ -34,8 +34,7 @@ int kernel_sendpage_locked(struct sock *sk, struct page *page, int offset,
 
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
 
-typedef int (*sendmsg_locked_t)(struct sock *, struct msghdr *);
-static sendmsg_locked_t sendmsg_locked = NULL;
+static int ovpn_sendmsg_locked(struct sock *sk, struct msghdr *msg);
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0) */
 
@@ -46,12 +45,6 @@ static inline int ovpn_skb_send_sock_locked_with_flags(struct sock *sk,
 						       int offset, int len,
 						       int flags)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) || \
-	SUSE_PRODUCT_CODE >= SUSE_PRODUCT(1, 15, 6, 0)
-	if (unlikely(!sendmsg_locked))
-		goto error;
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) */
-
 	unsigned int orig_len = len;
 	struct sk_buff *head = skb;
 	unsigned short fragidx;
@@ -75,7 +68,7 @@ do_frag_list:
 		ret = kernel_sendmsg_locked(sk, &msg, &kv, 1, slen);
 #else /* LINUX_VERSION_CODE >= KERNEL_VERSION (6, 5, 0) */
 		iov_iter_kvec(&msg.msg_iter, ITER_SOURCE, &kv, 1, slen);
-		ret = sendmsg_locked(sk, &msg);
+		ret = ovpn_sendmsg_locked(sk, &msg);
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0) */
 		if (ret <= 0)
 			goto error;
@@ -125,7 +118,7 @@ do_frag_list:
 			iov_iter_bvec(&msg.msg_iter, ITER_SOURCE, &bvec, 1,
 				      slen);
 
-			ret = sendmsg_locked(sk, &msg);
+			ret = ovpn_sendmsg_locked(sk, &msg);
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0) */
 			if (ret <= 0)
 				goto error;

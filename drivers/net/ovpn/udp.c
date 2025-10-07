@@ -205,7 +205,11 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
 transmit:
 	udp_tunnel_xmit_skb(rt, sk, skb, fl.saddr, fl.daddr, 0,
 			    ip4_dst_hoplimit(&rt->dst), 0, fl.fl4_sport,
-			    fl.fl4_dport, false, sk->sk_no_check_tx);
+			    fl.fl4_dport, false, sk->sk_no_check_tx
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+			    , 0
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
+			    );
 	ret = 0;
 err:
 	local_bh_enable();
@@ -286,7 +290,11 @@ transmit:
 	skb->ignore_df = 1;
 	udp_tunnel6_xmit_skb(dst, sk, skb, skb->dev, &fl.saddr, &fl.daddr, 0,
 			     ip6_dst_hoplimit(dst), 0, fl.fl6_sport,
-			     fl.fl6_dport, udp_get_no_check6_tx(sk));
+			     fl.fl6_dport, udp_get_no_check6_tx(sk)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+			     , 0
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
+			     );
 	ret = 0;
 err:
 	local_bh_enable();
@@ -356,6 +364,7 @@ void ovpn_udp_send_skb(struct ovpn_peer *peer, struct sock *sk,
 	int ret;
 
 	skb->dev = peer->ovpn->dev;
+	skb->mark = READ_ONCE(sk->sk_mark);
 	/* no checksum performed at this layer */
 	skb->ip_summed = CHECKSUM_NONE;
 

@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/netlink.c b/drivers/net/ovpn/netlink.c
-index a4ec53d..2846a03 100644
+index c7f3824..93ff7b0 100644
 --- a/drivers/net/ovpn/netlink.c
 +++ b/drivers/net/ovpn/netlink.c
 @@ -6,6 +6,12 @@
@@ -175,7 +175,7 @@ index a4ec53d..2846a03 100644
  int ovpn_nl_peer_get_doit(struct sk_buff *skb, struct genl_info *info)
  {
  	struct nlattr *attrs[OVPN_A_PEER_MAX + 1];
-@@ -697,13 +808,25 @@ int ovpn_nl_peer_get_doit(struct sk_buff *skb, struct genl_info *info)
+@@ -714,13 +825,25 @@ int ovpn_nl_peer_get_doit(struct sk_buff *skb, struct genl_info *info)
  
  int ovpn_nl_peer_get_dumpit(struct sk_buff *skb, struct netlink_callback *cb)
  {
@@ -201,7 +201,7 @@ index a4ec53d..2846a03 100644
  	if (IS_ERR(ovpn))
  		return PTR_ERR(ovpn);
  
-@@ -715,10 +838,19 @@ int ovpn_nl_peer_get_dumpit(struct sk_buff *skb, struct netlink_callback *cb)
+@@ -732,10 +855,19 @@ int ovpn_nl_peer_get_dumpit(struct sk_buff *skb, struct netlink_callback *cb)
  		rcu_read_lock();
  		peer = rcu_dereference(ovpn->peer);
  		if (peer) {
@@ -221,7 +221,7 @@ index a4ec53d..2846a03 100644
  				dumped++;
  		}
  		rcu_read_unlock();
-@@ -734,10 +866,19 @@ int ovpn_nl_peer_get_dumpit(struct sk_buff *skb, struct netlink_callback *cb)
+@@ -751,10 +883,19 @@ int ovpn_nl_peer_get_dumpit(struct sk_buff *skb, struct netlink_callback *cb)
  				continue;
  			}
  
@@ -241,7 +241,7 @@ index a4ec53d..2846a03 100644
  				break;
  
  			/* count peers being dumped during this invocation */
-@@ -1237,6 +1378,7 @@ int ovpn_nl_key_swap_notify(struct ovpn_peer *peer, u8 key_id)
+@@ -1272,6 +1413,7 @@ int ovpn_nl_key_swap_notify(struct ovpn_peer *peer, u8 key_id)
   *
   * Return: 0 on success, a negative error code otherwise
   */

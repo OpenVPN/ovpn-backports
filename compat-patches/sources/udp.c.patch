@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/udp.c b/drivers/net/ovpn/udp.c
-index bff0094..7b78ab5 100644
+index d6a0f7a..ed468d5 100644
 --- a/drivers/net/ovpn/udp.c
 +++ b/drivers/net/ovpn/udp.c
 @@ -14,7 +14,9 @@
@@ -24,7 +24,20 @@ index bff0094..7b78ab5 100644
  drop_noovpn:
  	kfree_skb(skb);
  	return 0;
-@@ -251,8 +257,14 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+@@ -199,7 +205,11 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+ transmit:
+ 	udp_tunnel_xmit_skb(rt, sk, skb, fl.saddr, fl.daddr, 0,
+ 			    ip4_dst_hoplimit(&rt->dst), 0, fl.fl4_sport,
+-			    fl.fl4_dport, false, sk->sk_no_check_tx, 0);
++			    fl.fl4_dport, false, sk->sk_no_check_tx
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++			    , 0
++#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
++			    );
+ 	ret = 0;
+ err:
+ 	local_bh_enable();
+@@ -251,8 +261,14 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
  		dst_cache_reset(cache);
  	}
  
@@ -39,7 +52,20 @@ index bff0094..7b78ab5 100644
  		ret = PTR_ERR(dst);
  		net_dbg_ratelimited("%s: no route to host %pISpc: %d\n",
  				    netdev_name(peer->ovpn->dev),
-@@ -435,12 +447,18 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
+@@ -274,7 +290,11 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+ 	skb->ignore_df = 1;
+ 	udp_tunnel6_xmit_skb(dst, sk, skb, skb->dev, &fl.saddr, &fl.daddr, 0,
+ 			     ip6_dst_hoplimit(dst), 0, fl.fl6_sport,
+-			     fl.fl6_dport, udp_get_no_check6_tx(sk), 0);
++			     fl.fl6_dport, udp_get_no_check6_tx(sk)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++			     , 0
++#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
++			     );
+ 	ret = 0;
+ err:
+ 	local_bh_enable();
+@@ -436,12 +456,18 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
  	struct sock *sk = ovpn_sock->sk;
  
  	/* Re-enable multicast loopback */

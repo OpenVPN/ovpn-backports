@@ -35,21 +35,6 @@
 #endif
 
 #include <linux/if_link.h>
-#include <linux/kprobes.h>
-
-static inline unsigned long get_unexported_symbol(const char *name)
-{
-	struct kprobe kp = { .symbol_name = name };
-	unsigned long addr;
-
-	if (register_kprobe(&kp) < 0)
-		return 0;
-
-	addr = (unsigned long)kp.addr;
-	unregister_kprobe(&kp);
-
-	return addr;
-}
 
 #ifndef UDP_ENCAP_OVPNINUDP
 /* Our UDP encapsulation types, must be unique
@@ -74,6 +59,25 @@ enum {
 #define IFLA_OVPN_MAX (__IFLA_OVPN_MAX - 1)
 
 #endif /* IFLA_OVPN_MAX */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+
+#include <net/sock.h>
+static int ovpn_sendmsg_locked(struct sock *sk, struct msghdr *msg)
+{
+	struct socket *sock = sk->sk_socket;
+	size_t size = msg_data_left(msg);
+
+	if (!sock)
+		return -EINVAL;
+
+	if (!sock->ops->sendmsg_locked)
+		return -EOPNOTSUPP;
+
+	return sock->ops->sendmsg_locked(sk, msg, size);
+}
+
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 

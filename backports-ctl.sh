@@ -3,7 +3,7 @@
 set -e
 
 KERNEL_REPO_URL='https://github.com/OpenVPN/ovpn-net-next.git'
-KERNEL_COMMIT=${KERNEL_COMMIT:-'2c7e4a2663a1ab5a740c59c31991579b6b865a26'}
+KERNEL_COMMIT=${KERNEL_COMMIT:-'07fdad3a93756b872da7b53647715c48d0f4a2d0'}
 KERNEL_DIR="$PWD/kernel"
 
 get_ovpn() {
@@ -32,10 +32,10 @@ get_ovpn() {
 		git apply --verbose "$patch"
 	done
 
-	# We extract this from backports all the non-sources branches of this repo
-	# point directly to the corresponding branch in ovpn-net-next and there's
-	# no way of getting this info from ovpn-net-next since it has been cloned
-	# with --depth 1.
+	# We extract the branch from backports because all the non-sources branches
+	# of this repo point directly to the corresponding branch in ovpn-net-next
+	# and there's no way of getting this info from ovpn-net-next since it has
+	# been cloned with --depth 1.
 	branch=$(git rev-parse --abbrev-ref HEAD)
 
 	# Save version information to a file (as key=value pairs) unless we're in a
