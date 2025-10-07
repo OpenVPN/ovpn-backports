@@ -61,19 +61,31 @@ const struct nla_policy ovpn_keyconf_nl_policy[OVPN_A_KEYCONF_DECRYPT_DIR + 1] =
 };
 
 const struct nla_policy ovpn_keyconf_del_input_nl_policy[OVPN_A_KEYCONF_SLOT + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_keyconf_peer_id_range),
+#else
+	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 	[OVPN_A_KEYCONF_SLOT] = NLA_POLICY_MAX(NLA_U32, 1),
 };
 
 const struct nla_policy ovpn_keyconf_get_nl_policy[OVPN_A_KEYCONF_CIPHER_ALG + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_keyconf_peer_id_range),
+#else
+	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 	[OVPN_A_KEYCONF_SLOT] = NLA_POLICY_MAX(NLA_U32, 1),
 	[OVPN_A_KEYCONF_KEY_ID] = NLA_POLICY_MAX(NLA_U32, 7),
 	[OVPN_A_KEYCONF_CIPHER_ALG] = NLA_POLICY_MAX(NLA_U32, 2),
 };
 
 const struct nla_policy ovpn_keyconf_swap_input_nl_policy[OVPN_A_KEYCONF_PEER_ID + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_keyconf_peer_id_range),
+#else
+	[OVPN_A_KEYCONF_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 };
 
 const struct nla_policy ovpn_keydir_nl_policy[OVPN_A_KEYDIR_NONCE_TAIL + 1] = {
@@ -112,11 +124,19 @@ const struct nla_policy ovpn_peer_nl_policy[OVPN_A_PEER_LINK_TX_PACKETS + 1] = {
 };
 
 const struct nla_policy ovpn_peer_del_input_nl_policy[OVPN_A_PEER_ID + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
+#else
+	[OVPN_A_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 };
 
 const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIMEOUT + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
+#else
+	[OVPN_A_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 	[OVPN_A_PEER_REMOTE_IPV4] = { .type = NLA_BE32, },
 	[OVPN_A_PEER_REMOTE_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_REMOTE_IPV6_SCOPE_ID] = { .type = NLA_U32, },
@@ -131,7 +151,11 @@ const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIME
 };
 
 const struct nla_policy ovpn_peer_set_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIMEOUT + 1] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
+#else
+	[OVPN_A_PEER_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 	[OVPN_A_PEER_REMOTE_IPV4] = { .type = NLA_BE32, },
 	[OVPN_A_PEER_REMOTE_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_REMOTE_IPV6_SCOPE_ID] = { .type = NLA_U32, },
