@@ -429,7 +429,7 @@ int ovpn_nl_peer_new_doit(struct sk_buff *skb, struct genl_info *info)
 		return -EINVAL;
 
 	ret = nla_parse_nested(attrs, OVPN_A_PEER_MAX, info->attrs[OVPN_A_PEER],
-			       ovpn_peer_nl_policy, info->extack);
+			       ovpn_peer_new_input_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -500,14 +500,9 @@ int ovpn_nl_peer_new_doit(struct sk_buff *skb, struct genl_info *info)
 	ovpn_sock = ovpn_socket_new(sock, peer);
 	/* at this point we unconditionally drop the reference to the socket:
 	 * - in case of error, the socket has to be dropped
-	 * - if case of success, the socket is configured and we let
+	 * - if case of success, the socket is configured and let
 	 *   userspace own the reference, so that the latter can
-	 *   trigger the final close().
-	 *
-	 * NOTE: at this point ovpn_socket_new() has acquired a reference
-	 * to sock->sk. That's needed especially to avoid race conditions
-	 * during cleanup, where sock may still be alive, but sock->sk may be
-	 * getting released concurrently.
+	 *   trigger the final close()
 	 */
 	sockfd_put(sock);
 	if (IS_ERR(ovpn_sock)) {
@@ -558,7 +553,7 @@ int ovpn_nl_peer_set_doit(struct sk_buff *skb, struct genl_info *info)
 		return -EINVAL;
 
 	ret = nla_parse_nested(attrs, OVPN_A_PEER_MAX, info->attrs[OVPN_A_PEER],
-			       ovpn_peer_nl_policy, info->extack);
+			       ovpn_peer_set_input_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -770,7 +765,7 @@ int ovpn_nl_peer_get_doit(struct sk_buff *skb, struct genl_info *info)
 	struct ovpn_peer *peer;
 	struct sk_buff *msg;
 	u32 peer_id;
-	int ret;
+	int ret, i;
 
 	if (GENL_REQ_ATTR_CHECK(info, OVPN_A_PEER))
 		return -EINVAL;
@@ -783,6 +778,23 @@ int ovpn_nl_peer_get_doit(struct sk_buff *skb, struct genl_info *info)
 	if (NL_REQ_ATTR_CHECK(info->extack, info->attrs[OVPN_A_PEER], attrs,
 			      OVPN_A_PEER_ID))
 		return -EINVAL;
+
+	/* OVPN_CMD_PEER_GET expects only the PEER_ID, therefore
+	 * ensure that the user hasn't specified any other attribute.
+	 *
+	 * Unfortunately this check cannot be performed via netlink
+	 * spec/policy and must be open-coded.
+	 */
+	for (i = 0; i < OVPN_A_PEER_MAX + 1; i++) {
+		if (i == OVPN_A_PEER_ID)
+			continue;
+
+		if (attrs[i]) {
+			NL_SET_ERR_MSG_FMT_MOD(info->extack,
+					       "unexpected attribute %u", i);
+			return -EINVAL;
+		}
+	}
 
 	peer_id = nla_get_u32(attrs[OVPN_A_PEER_ID]);
 	peer = ovpn_peer_get_by_id(ovpn, peer_id);
@@ -914,7 +926,7 @@ int ovpn_nl_peer_del_doit(struct sk_buff *skb, struct genl_info *info)
 		return -EINVAL;
 
 	ret = nla_parse_nested(attrs, OVPN_A_PEER_MAX, info->attrs[OVPN_A_PEER],
-			       ovpn_peer_nl_policy, info->extack);
+			       ovpn_peer_del_input_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -1115,14 +1127,14 @@ int ovpn_nl_key_get_doit(struct sk_buff *skb, struct genl_info *info)
 	struct ovpn_peer *peer;
 	struct sk_buff *msg;
 	u32 peer_id;
-	int ret;
+	int ret, i;
 
 	if (GENL_REQ_ATTR_CHECK(info, OVPN_A_KEYCONF))
 		return -EINVAL;
 
 	ret = nla_parse_nested(attrs, OVPN_A_KEYCONF_MAX,
 			       info->attrs[OVPN_A_KEYCONF],
-			       ovpn_keyconf_nl_policy, info->extack);
+			       ovpn_keyconf_get_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -1133,6 +1145,24 @@ int ovpn_nl_key_get_doit(struct sk_buff *skb, struct genl_info *info)
 	if (NL_REQ_ATTR_CHECK(info->extack, info->attrs[OVPN_A_KEYCONF], attrs,
 			      OVPN_A_KEYCONF_SLOT))
 		return -EINVAL;
+
+	/* OVPN_CMD_KEY_GET expects only the PEER_ID and the SLOT, therefore
+	 * ensure that the user hasn't specified any other attribute.
+	 *
+	 * Unfortunately this check cannot be performed via netlink
+	 * spec/policy and must be open-coded.
+	 */
+	for (i = 0; i < OVPN_A_KEYCONF_MAX + 1; i++) {
+		if (i == OVPN_A_KEYCONF_PEER_ID ||
+		    i == OVPN_A_KEYCONF_SLOT)
+			continue;
+
+		if (attrs[i]) {
+			NL_SET_ERR_MSG_FMT_MOD(info->extack,
+					       "unexpected attribute %u", i);
+			return -EINVAL;
+		}
+	}
 
 	peer_id = nla_get_u32(attrs[OVPN_A_KEYCONF_PEER_ID]);
 	peer = ovpn_peer_get_by_id(ovpn, peer_id);
@@ -1172,8 +1202,8 @@ err:
 
 int ovpn_nl_key_swap_doit(struct sk_buff *skb, struct genl_info *info)
 {
+	struct nlattr *attrs[OVPN_A_KEYCONF_MAX + 1];
 	struct ovpn_priv *ovpn = info->user_ptr[0];
-	struct nlattr *attrs[OVPN_A_PEER_MAX + 1];
 	struct ovpn_peer *peer;
 	u32 peer_id;
 	int ret;
@@ -1183,7 +1213,7 @@ int ovpn_nl_key_swap_doit(struct sk_buff *skb, struct genl_info *info)
 
 	ret = nla_parse_nested(attrs, OVPN_A_KEYCONF_MAX,
 			       info->attrs[OVPN_A_KEYCONF],
-			       ovpn_keyconf_nl_policy, info->extack);
+			       ovpn_keyconf_swap_input_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -1220,7 +1250,7 @@ int ovpn_nl_key_del_doit(struct sk_buff *skb, struct genl_info *info)
 
 	ret = nla_parse_nested(attrs, OVPN_A_KEYCONF_MAX,
 			       info->attrs[OVPN_A_KEYCONF],
-			       ovpn_keyconf_nl_policy, info->extack);
+			       ovpn_keyconf_del_input_nl_policy, info->extack);
 	if (ret)
 		return ret;
 
@@ -1301,6 +1331,87 @@ int ovpn_nl_peer_del_notify(struct ovpn_peer *peer)
 	}
 	genlmsg_multicast_netns(&ovpn_nl_family, sock_net(sock->sk), msg, 0,
 				OVPN_NLGRP_PEERS, GFP_ATOMIC);
+	rcu_read_unlock();
+
+	return 0;
+
+err_unlock:
+	rcu_read_unlock();
+err_cancel_msg:
+	genlmsg_cancel(msg, hdr);
+err_free_msg:
+	nlmsg_free(msg);
+	return ret;
+}
+
+/**
+ * ovpn_nl_float_peer_notify - notify userspace about peer floating
+ * @peer: the floated peer
+ * @ss: sockaddr representing the new remote endpoint
+ *
+ * Return: 0 on success or a negative error code otherwise
+ */
+int ovpn_nl_peer_float_notify(struct ovpn_peer *peer,
+			      const struct sockaddr_storage *ss)
+{
+	struct ovpn_socket *sock;
+	struct sockaddr_in6 *sa6;
+	struct sockaddr_in *sa;
+	struct sk_buff *msg;
+	struct nlattr *attr;
+	int ret = -EMSGSIZE;
+	void *hdr;
+
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_ATOMIC);
+	if (!msg)
+		return -ENOMEM;
+
+	hdr = genlmsg_put(msg, 0, 0, &ovpn_nl_family, 0,
+			  OVPN_CMD_PEER_FLOAT_NTF);
+	if (!hdr) {
+		ret = -ENOBUFS;
+		goto err_free_msg;
+	}
+
+	if (nla_put_u32(msg, OVPN_A_IFINDEX, peer->ovpn->dev->ifindex))
+		goto err_cancel_msg;
+
+	attr = nla_nest_start(msg, OVPN_A_PEER);
+	if (!attr)
+		goto err_cancel_msg;
+
+	if (nla_put_u32(msg, OVPN_A_PEER_ID, peer->id))
+		goto err_cancel_msg;
+
+	if (ss->ss_family == AF_INET) {
+		sa = (struct sockaddr_in *)ss;
+		if (nla_put_in_addr(msg, OVPN_A_PEER_REMOTE_IPV4,
+				    sa->sin_addr.s_addr) ||
+		    nla_put_net16(msg, OVPN_A_PEER_REMOTE_PORT, sa->sin_port))
+			goto err_cancel_msg;
+	} else if (ss->ss_family == AF_INET6) {
+		sa6 = (struct sockaddr_in6 *)ss;
+		if (nla_put_in6_addr(msg, OVPN_A_PEER_REMOTE_IPV6,
+				     &sa6->sin6_addr) ||
+		    nla_put_u32(msg, OVPN_A_PEER_REMOTE_IPV6_SCOPE_ID,
+				sa6->sin6_scope_id) ||
+		    nla_put_net16(msg, OVPN_A_PEER_REMOTE_PORT, sa6->sin6_port))
+			goto err_cancel_msg;
+	} else {
+		goto err_cancel_msg;
+	}
+
+	nla_nest_end(msg, attr);
+	genlmsg_end(msg, hdr);
+
+	rcu_read_lock();
+	sock = rcu_dereference(peer->sock);
+	if (!sock) {
+		ret = -EINVAL;
+		goto err_unlock;
+	}
+	genlmsg_multicast_netns(&ovpn_nl_family, sock_net(sock->sk), msg,
+				0, OVPN_NLGRP_PEERS, GFP_ATOMIC);
 	rcu_read_unlock();
 
 	return 0;

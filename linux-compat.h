@@ -31,46 +31,7 @@
 #define SUSE_PRODUCT(pr, v, pl, aux) 1
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
-
-#include <linux/kprobes.h>
-
-typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
-static kallsyms_lookup_name_t kallsyms_lookup_name_p;
-
-static inline unsigned long get_kallsyms_lookup_name(void)
-{
-	struct kprobe kp = { .symbol_name = "kallsyms_lookup_name" };
-	unsigned long addr;
-
-	if (register_kprobe(&kp) < 0)
-		return 0;
-
-	addr = (unsigned long)kp.addr;
-	unregister_kprobe(&kp);
-
-	return addr;
-}
-
-static inline unsigned long ovpn_kallsyms_lookup_name(const char *name)
-{
-	if (!kallsyms_lookup_name_p)
-		kallsyms_lookup_name_p =
-			(kallsyms_lookup_name_t)get_kallsyms_lookup_name();
-
-	if (kallsyms_lookup_name_p)
-		return kallsyms_lookup_name_p(name);
-	else
-		return 0;
-}
-
-#define kallsyms_lookup_name(_name) ovpn_kallsyms_lookup_name((_name))
-
-#else /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0) */
-
-#include <linux/kallsyms.h>
-
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0) */
+#include <linux/if_link.h>
 
 #ifndef UDP_ENCAP_OVPNINUDP
 /* Our UDP encapsulation types, must be unique
@@ -78,6 +39,8 @@ static inline unsigned long ovpn_kallsyms_lookup_name(const char *name)
  */
 #define UDP_ENCAP_OVPNINUDP 8 /* transport layer */
 #endif /* UDP_ENCAP_OVPNINUDP */
+
+#ifndef IFLA_OVPN_MAX
 
 enum ovpn_mode {
 	OVPN_MODE_P2P,
@@ -91,6 +54,28 @@ enum {
 };
 
 #define IFLA_OVPN_MAX (__IFLA_OVPN_MAX - 1)
+
+#endif /* IFLA_OVPN_MAX */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) && \
+	LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+
+#include <net/sock.h>
+static int ovpn_sendmsg_locked(struct sock *sk, struct msghdr *msg)
+{
+	struct socket *sock = sk->sk_socket;
+	size_t size = msg_data_left(msg);
+
+	if (!sock)
+		return -EINVAL;
+
+	if (!sock->ops->sendmsg_locked)
+		return -EOPNOTSUPP;
+
+	return sock->ops->sendmsg_locked(sk, msg, size);
+}
+
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 

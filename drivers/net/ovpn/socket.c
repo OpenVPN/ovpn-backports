@@ -189,26 +189,26 @@ struct ovpn_socket *ovpn_socket_new(struct socket *sock, struct ovpn_peer *peer)
 		rcu_read_unlock();
 	}
 
-	/* increase sk refcounter as we'll store a reference in
-	 * ovpn_socket.
-	 * ovpn_socket_release() will decrement the refcounter.
-	 */
-	if (!refcount_inc_not_zero(&sk->sk_refcnt)) {
-		ovpn_sock = ERR_PTR(-ENOTSOCK);
-		goto sock_release;
-	}
-
 	/* socket is not owned: attach to this ovpn instance */
 
 	ovpn_sock = kzalloc(sizeof(*ovpn_sock), GFP_KERNEL);
 	if (!ovpn_sock) {
-		sock_put(sk);
 		ovpn_sock = ERR_PTR(-ENOMEM);
 		goto sock_release;
 	}
 
 	ovpn_sock->sk = sk;
 	kref_init(&ovpn_sock->refcount);
+
+	/* the newly created ovpn_socket is holding reference to sk,
+	 * therefore we increase its refcounter.
+	 *
+	 * This ovpn_socket instance is referenced by all peers
+	 * using the same socket.
+	 *
+	 * ovpn_socket_release() will take care of dropping the reference.
+	 */
+	sock_hold(sk);
 
 	ret = ovpn_socket_attach(ovpn_sock, sock, peer);
 	if (ret < 0) {

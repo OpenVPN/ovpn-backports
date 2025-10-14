@@ -1,5 +1,5 @@
 diff --git a/tests/ovpn-cli/ovpn-cli.c b/tests/ovpn-cli/ovpn-cli.c
-index 9201f29..1489926 100644
+index 064453d..ccaa78f 100644
 --- a/tests/ovpn-cli/ovpn-cli.c
 +++ b/tests/ovpn-cli/ovpn-cli.c
 @@ -17,6 +17,7 @@
@@ -10,7 +10,7 @@ index 9201f29..1489926 100644
  #include <linux/ovpn.h>
  #include <linux/types.h>
  #include <linux/netlink.h>
-@@ -278,15 +279,19 @@ static int ovpn_nl_cb_error(struct sockaddr_nl (*nla)__always_unused,
+@@ -279,15 +280,19 @@ static int ovpn_nl_cb_error(struct sockaddr_nl (*nla)__always_unused,
  			(char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]));
  	}
  
