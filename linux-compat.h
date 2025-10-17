@@ -96,13 +96,6 @@ static int ovpn_sendmsg_locked(struct sock *sk, struct msghdr *msg)
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0) */
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && \
-	SUSE_PRODUCT_CODE < SUSE_PRODUCT(1, 15, 5, 0)
-
-#define sock_is_readable stream_memory_read
-
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0) && SUSE_PRODUCT_CODE < SUSE_PRODUCT(1, 15, 5, 0) */
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0) && \
 	RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 0)
 
