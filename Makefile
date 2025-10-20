@@ -59,7 +59,7 @@ all: check-config
 debug:
 	$(MAKE) DEBUG=1 all
 
-check-config: check-kprobes
+check-config:
 	@while read -r flag; do \
 		if [ -z "$$flag" ] || [ "$${flag#\#}" != "$$flag" ]; then continue; fi; \
 		if ! grep -qE "^$$flag=(y|m)" $(KERNEL_CFG); then \
@@ -68,18 +68,6 @@ check-config: check-kprobes
 		fi; \
 	done < $(OVPN_CFG)
 	@echo "Kernel configuration check passed."
-
-check-kprobes:
-	@actual_ver="$(kernel_version)"; \
-	required_ver="5.7.0"; \
-	actual_num=$$(echo "$$actual_ver" | awk -F. '{ print ($$1 * 65536) + ($$2 * 256) + $$3 }'); \
-	required_num=$$(echo "$$required_ver" | awk -F. '{ print ($$1 * 65536) + ($$2 * 256) + $$3 }'); \
-	if [ "$$actual_num" -gt "$$required_num" ]; then \
-		if ! grep -qE "CONFIG_KPROBES=y" $(KERNEL_CFG); then \
-			echo "Error: CONFIG_KPROBES=y is required for this kernel but is not set in $(KERNEL_CFG)." >&2; \
-			exit 1; \
-		fi; \
-	fi
 
 clean:
 	$(MAKE) -C $(KERNEL_SRC) $(BUILD_FLAGS) clean
@@ -92,4 +80,4 @@ install:
 ovpn-cli:
 	$(MAKE) -C $(PWD)/tests/ovpn-cli $(BUILD_FLAGS) ovpn-cli
 
-.PHONY: all debug check-config check-kprobes clean install ovpn-cli
+.PHONY: all debug check-config clean install ovpn-cli
