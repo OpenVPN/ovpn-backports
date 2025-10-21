@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/tcp.c b/drivers/net/ovpn/tcp.c
-index 289f62c..09777a7 100644
+index 289f62c..b5dd317 100644
 --- a/drivers/net/ovpn/tcp.c
 +++ b/drivers/net/ovpn/tcp.c
 @@ -7,7 +7,12 @@
@@ -30,7 +30,7 @@ index 289f62c..09777a7 100644
  
  static int ovpn_tcp_parse(struct strparser *strp, struct sk_buff *skb)
  {
-@@ -133,13 +144,228 @@ static void ovpn_tcp_rcv(struct strparser *strp, struct sk_buff *skb)
+@@ -133,19 +144,238 @@ static void ovpn_tcp_rcv(struct strparser *strp, struct sk_buff *skb)
  	if (WARN_ON(!ovpn_peer_hold(peer)))
  		goto err_nopeer;
  	schedule_work(&peer->tcp.defer_del_work);
@@ -251,7 +251,7 @@ index 289f62c..09777a7 100644
 +
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 +static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
-+			    int _noblock, int flags, int *addr_len)
++			    int noblock, int flags, int *addr_len)
 +#else
  static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
  			    int flags, int *addr_len)
@@ -259,7 +259,17 @@ index 289f62c..09777a7 100644
  {
  	int err = 0, off, copied = 0, ret;
  	struct ovpn_socket *sock;
-@@ -155,7 +381,15 @@ static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
+ 	struct ovpn_peer *peer;
+ 	struct sk_buff *skb;
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
++	flags |= noblock ? MSG_DONTWAIT : 0;
++#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0) */
++
+ 	rcu_read_lock();
+ 	sock = rcu_dereference_sk_user_data(sk);
+ 	if (unlikely(!sock || !sock->peer || !ovpn_peer_hold(sock->peer))) {
+@@ -155,7 +385,15 @@ static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
  	peer = sock->peer;
  	rcu_read_unlock();
  
@@ -275,7 +285,7 @@ index 289f62c..09777a7 100644
  	if (!skb) {
  		if (err == -EAGAIN && sk->sk_shutdown & RCV_SHUTDOWN) {
  			ret = 0;
-@@ -268,7 +502,11 @@ static void ovpn_tcp_send_sock(struct ovpn_peer *peer, struct sock *sk)
+@@ -268,7 +506,11 @@ static void ovpn_tcp_send_sock(struct ovpn_peer *peer, struct sock *sk)
  
  	if (!peer->tcp.out_msg.len) {
  		preempt_disable();
@@ -287,7 +297,7 @@ index 289f62c..09777a7 100644
  		preempt_enable();
  	}
  
-@@ -300,7 +538,11 @@ static void ovpn_tcp_send_sock_skb(struct ovpn_peer *peer, struct sock *sk,
+@@ -300,7 +542,11 @@ static void ovpn_tcp_send_sock_skb(struct ovpn_peer *peer, struct sock *sk,
  		ovpn_tcp_send_sock(peer, sk);
  
  	if (peer->tcp.out_msg.skb) {
@@ -299,7 +309,7 @@ index 289f62c..09777a7 100644
  		kfree_skb(skb);
  		return;
  	}
-@@ -321,8 +563,16 @@ void ovpn_tcp_send_skb(struct ovpn_peer *peer, struct sock *sk,
+@@ -321,8 +567,16 @@ void ovpn_tcp_send_skb(struct ovpn_peer *peer, struct sock *sk,
  	spin_lock_nested(&sk->sk_lock.slock, OVPN_TCP_DEPTH_NESTING);
  	if (sock_owned_by_user(sk)) {
  		if (skb_queue_len(&peer->tcp.out_queue) >=
@@ -316,7 +326,7 @@ index 289f62c..09777a7 100644
  			kfree_skb(skb);
  			goto unlock;
  		}
-@@ -524,13 +774,23 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
+@@ -524,13 +778,23 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
  		ovpn_sock->sk->sk_prot = &ovpn_tcp_prot;
  		ovpn_sock->sk->sk_socket->ops = &ovpn_tcp_ops;
  	} else {
@@ -340,7 +350,7 @@ index 289f62c..09777a7 100644
  
  	/* enqueue the RX worker */
  	strp_check_rcv(&peer->tcp.strp);
-@@ -594,8 +854,10 @@ void __init ovpn_tcp_init(void)
+@@ -594,8 +858,10 @@ void __init ovpn_tcp_init(void)
  	ovpn_tcp_build_protos(&ovpn_tcp_prot, &ovpn_tcp_ops, &tcp_prot,
  			      &inet_stream_ops);
  

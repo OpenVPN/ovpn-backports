@@ -361,7 +361,7 @@ static struct sk_buff *ovpn__skb_recv_datagram(struct sock *sk,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
-			    int _noblock, int flags, int *addr_len)
+			    int noblock, int flags, int *addr_len)
 #else
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 			    int flags, int *addr_len)
@@ -371,6 +371,10 @@ static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 	struct ovpn_socket *sock;
 	struct ovpn_peer *peer;
 	struct sk_buff *skb;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	flags |= noblock ? MSG_DONTWAIT : 0;
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0) */
 
 	rcu_read_lock();
 	sock = rcu_dereference_sk_user_data(sk);
