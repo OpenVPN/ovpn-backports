@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/peer.c b/drivers/net/ovpn/peer.c
-index 4bfcab0..f0ad0b7 100644
+index 4bfcab0..6bf6d3d 100644
 --- a/drivers/net/ovpn/peer.c
 +++ b/drivers/net/ovpn/peer.c
 @@ -410,7 +410,12 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
@@ -32,7 +32,7 @@ index 4bfcab0..f0ad0b7 100644
  		.daddr = dest,
  	};
  
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0) || RHEL_RELEASE_CODE != 0
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5) || RHEL_RELEASE_CODE != 0
  	entry = ipv6_stub->ipv6_dst_lookup_flow(dev_net(ovpn->dev), NULL, &fl,
  						NULL);
  	if (IS_ERR(entry)) {

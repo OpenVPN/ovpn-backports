@@ -831,7 +831,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
 		.daddr = dest,
 	};
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0) || RHEL_RELEASE_CODE != 0
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5) || RHEL_RELEASE_CODE != 0
 	entry = ipv6_stub->ipv6_dst_lookup_flow(dev_net(ovpn->dev), NULL, &fl,
 						NULL);
 	if (IS_ERR(entry)) {

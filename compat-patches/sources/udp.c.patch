@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/udp.c b/drivers/net/ovpn/udp.c
-index d6a0f7a..ed468d5 100644
+index d6a0f7a..3cda0e2 100644
 --- a/drivers/net/ovpn/udp.c
 +++ b/drivers/net/ovpn/udp.c
 @@ -14,7 +14,9 @@
@@ -41,7 +41,7 @@ index d6a0f7a..ed468d5 100644
  		dst_cache_reset(cache);
  	}
  
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0) || RHEL_RELEASE_CODE != 0
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5) || RHEL_RELEASE_CODE != 0
  	dst = ipv6_stub->ipv6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
  	if (IS_ERR(dst)) {
 +#else
