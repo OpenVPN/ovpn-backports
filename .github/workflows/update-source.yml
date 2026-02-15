@@ -7,15 +7,20 @@
 name: Update Sources
 
 on:
-  push:
-    branches:
-      - main
-      - development
-      - net
-      - development-net
+  push
+  workflow_dispatch
 
 jobs:
   update-sources:
+    if: >
+      startsWith(github.ref, 'refs/heads/') &&
+      (
+        vars.UPDATE_SOURCES_ON_ANY_PUSH == '1' ||
+        github.ref_name == 'main' ||
+        github.ref_name == 'net' ||
+        github.ref_name == 'development' ||
+        github.ref_name == 'development-net'
+      )
     runs-on: ubuntu-latest
 
     steps:
