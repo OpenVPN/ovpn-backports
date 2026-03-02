@@ -50,4 +50,84 @@ static inline struct net *ovpn_genl_info_net(const struct genl_info *info)
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0) */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) || \
+	RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 5) || \
+	SUSE_PRODUCT_CODE >= SUSE_PRODUCT(1, 15, 6, 0)
+
+#define OVPN_GENL_HAS_DUMP_INFO 1
+
+#else
+
+#define OVPN_GENL_HAS_DUMP_INFO 0
+
+#endif
+
+#define OVPN_GENL_REQ_ATTR_CHECK(_info, _attr) \
+	GENL_REQ_ATTR_CHECK((struct genl_info *)(_info), (_attr))
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0) || \
+	RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 3)
+
+#define OVPN_GENL_OPS_HAS_SPLIT_DOIT_HOOKS 1
+#define OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(_pre, _post) \
+	.pre_doit = (_pre), \
+	.post_doit = (_post),
+
+#else
+
+#define OVPN_GENL_OPS_HAS_SPLIT_DOIT_HOOKS 0
+#define OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(_pre, _post)
+
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) || \
+	LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0) || \
+	RHEL_RELEASE_CODE != 0
+
+#define OVPN_GENL_OPS_POLICY(_policy, _maxattr) \
+	.policy = (_policy), \
+	.maxattr = (_maxattr),
+
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
+
+#define OVPN_GENL_OPS_POLICY(_policy, _maxattr)
+
+#else
+
+#define OVPN_GENL_OPS_POLICY(_policy, _maxattr)
+
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) || \
+	LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0) || \
+	RHEL_RELEASE_CODE != 0
+
+#define OVPN_GENL_OPS_POLICY_LEGACY_PEER_GET(_policy, _maxattr) \
+	.policy = (_policy), \
+	.maxattr = (_maxattr),
+
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
+
+#define OVPN_GENL_OPS_POLICY_LEGACY_PEER_GET(_policy, _maxattr)
+
+#else
+
+#define OVPN_GENL_OPS_POLICY_LEGACY_PEER_GET(_policy, _maxattr)
+
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0) && \
+	RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 3)
+
+#define OVPN_GENL_FAMILY_DOIT_HOOKS(_pre, _post, _maxattr) \
+	.pre_doit = (_pre), \
+	.post_doit = (_post), \
+	.maxattr = (_maxattr),
+
+#else
+
+#define OVPN_GENL_FAMILY_DOIT_HOOKS(_pre, _post, _maxattr)
+
+#endif
+
 #endif /* _NET_OVPN_NET_GENETLINK_H_ */

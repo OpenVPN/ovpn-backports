@@ -26,14 +26,23 @@ typedef struct {} netdevice_tracker;
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1) */
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0) && \
-	RHEL_RELEASE_CODE == 0) || \
-	(RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2) && \
-	RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(8, 10))
+		RHEL_RELEASE_CODE == 0) || \
+		(RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2) && \
+		RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(8, 10))
 
 #define dev_core_stats_tx_dropped_inc(dev) atomic_long_inc(&dev->tx_dropped)
 #define dev_core_stats_rx_dropped_inc(dev) atomic_long_inc(&dev->rx_dropped)
 
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0) && RHEL_RELEASE_CODE == 0) || (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 2) && RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(8, 10)) */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 14, 0)
+
+#define dev_dstats_rx_add(dev, len) dev_sw_netstats_rx_add(dev, len)
+#define dev_dstats_tx_add(dev, len) dev_sw_netstats_tx_add(dev, 1, len)
+#define dev_dstats_tx_dropped(dev) dev_core_stats_tx_dropped_inc(dev)
+#define dev_dstats_rx_dropped(dev) dev_core_stats_rx_dropped_inc(dev)
+
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 14, 0) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0) && \
 	SUSE_PRODUCT_CODE < SUSE_PRODUCT(1, 15, 5, 0) && \

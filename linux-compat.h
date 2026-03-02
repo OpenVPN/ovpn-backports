@@ -177,7 +177,7 @@ static inline void dev_sw_netstats_rx_add(struct net_device *dev,
 #define nf_reset_ct nf_reset
 
 #ifndef fallthrough
-#define fallthrough (0)
+#define fallthrough do {} while (0)
 #endif
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && SUSE_PRODUCT_CODE < SUSE_PRODUCT(1, 15, 3, 0) */

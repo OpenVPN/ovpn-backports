@@ -4,7 +4,7 @@
 #include <linux/version.h>
 #include_next <linux/skbuff.h>
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0) && \
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 10) && \
 	RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10)
 
 static inline void skb_mark_not_on_list(struct sk_buff *skb)
@@ -12,9 +12,9 @@ static inline void skb_mark_not_on_list(struct sk_buff *skb)
 	skb->next = NULL;
 }
 
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 10) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && \
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 201) && \
 	RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10)
 
 static inline unsigned int skb_frag_off(const skb_frag_t *frag)
@@ -22,7 +22,7 @@ static inline unsigned int skb_frag_off(const skb_frag_t *frag)
 	return frag->page_offset;
 }
 
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 201) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0) && \
 	SUSE_PRODUCT_CODE < SUSE_PRODUCT(1, 15, 6, 0)

@@ -4,7 +4,7 @@
 #include <linux/version.h>
 #include_next <net/net_namespace.h>
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && \
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 83) && \
 	RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10)
 
 static inline int ovpn_peernet2id_alloc(struct net *net, struct net *peer,
@@ -15,6 +15,6 @@ static inline int ovpn_peernet2id_alloc(struct net *net, struct net *peer,
 
 #define peernet2id_alloc ovpn_peernet2id_alloc
 
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 83) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10) */
 
 #endif /* _NET_OVPN_NET_NET_NAMESPACE_H_ */

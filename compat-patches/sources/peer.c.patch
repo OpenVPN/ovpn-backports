@@ -1,46 +1,32 @@
 diff --git a/drivers/net/ovpn/peer.c b/drivers/net/ovpn/peer.c
-index 4bfcab0..6bf6d3d 100644
+index 4bfcab0..321840a 100644
 --- a/drivers/net/ovpn/peer.c
 +++ b/drivers/net/ovpn/peer.c
-@@ -410,7 +410,12 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
+@@ -410,7 +410,7 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
  {
  	const struct rtable *rt = skb_rtable(skb);
  
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && \
-+    LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 0)
-+	if (rt && rt->rt_gw_family == AF_INET)
-+#else
- 	if (rt && rt->rt_uses_gateway)
-+#endif
+-	if (rt && rt->rt_uses_gateway)
++	if (rt && ovpn_rt4_uses_gateway(rt))
  		return rt->rt_gw4;
  
  	return ip_hdr(skb)->daddr;
-@@ -791,7 +796,12 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
+@@ -791,7 +791,7 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
  		return dest;
  	}
  
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && \
-+    LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 0)
-+	if (!rt->rt_gw_family)
-+#else
- 	if (!rt->rt_uses_gateway)
-+#endif
+-	if (!rt->rt_uses_gateway)
++	if (!ovpn_rt4_uses_gateway(rt))
  		goto out;
  
  	dest = rt->rt_gw4;
-@@ -821,9 +831,15 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
+@@ -821,8 +821,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
  		.daddr = dest,
  	};
  
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5) || RHEL_RELEASE_CODE != 0
- 	entry = ipv6_stub->ipv6_dst_lookup_flow(dev_net(ovpn->dev), NULL, &fl,
- 						NULL);
+-	entry = ipv6_stub->ipv6_dst_lookup_flow(dev_net(ovpn->dev), NULL, &fl,
+-						NULL);
++	entry = ovpn_ipv6_dst_lookup_flow(dev_net(ovpn->dev), NULL, &fl, NULL);
  	if (IS_ERR(entry)) {
-+#else
-+	int err;
-+	err = ipv6_stub->ipv6_dst_lookup(dev_net(ovpn->dev), NULL, &entry, &fl);
-+	if (err || IS_ERR(entry)) {
-+#endif
  		net_dbg_ratelimited("%s: no route to host %pI6c\n",
  				    netdev_name(ovpn->dev), &dest);
- 		/* if we end up here this packet is probably going to be

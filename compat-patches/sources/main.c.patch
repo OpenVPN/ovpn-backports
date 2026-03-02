@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/main.c b/drivers/net/ovpn/main.c
-index 1bb1afe..8925c9a 100644
+index 1bb1afe..968d66a 100644
 --- a/drivers/net/ovpn/main.c
 +++ b/drivers/net/ovpn/main.c
 @@ -85,6 +85,12 @@ static int ovpn_net_init(struct net_device *dev)
@@ -58,56 +58,50 @@ index 1bb1afe..8925c9a 100644
  
  	dev->ethtool_ops = &ovpn_ethtool_ops;
  	dev->netdev_ops = &ovpn_netdev_ops;
-@@ -174,6 +192,7 @@ static void ovpn_setup(struct net_device *dev)
+@@ -174,12 +192,9 @@ static void ovpn_setup(struct net_device *dev)
  	SET_NETDEV_DEVTYPE(dev, &ovpn_type);
  }
  
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
- static int ovpn_newlink(struct net_device *dev,
- 			struct rtnl_newlink_params *params,
- 			struct netlink_ext_ack *extack)
-@@ -207,6 +226,40 @@ static int ovpn_newlink(struct net_device *dev,
+-static int ovpn_newlink(struct net_device *dev,
+-			struct rtnl_newlink_params *params,
+-			struct netlink_ext_ack *extack)
++static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
+ {
+ 	struct ovpn_priv *ovpn = netdev_priv(dev);
+-	struct nlattr **data = params->data;
+ 	enum ovpn_mode mode = OVPN_MODE_P2P;
  
+ 	if (data && data[IFLA_OVPN_MODE]) {
+@@ -208,6 +223,28 @@ static int ovpn_newlink(struct net_device *dev,
  	return register_netdevice(dev);
  }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
++static int ovpn_newlink(struct net_device *dev,
++			struct rtnl_newlink_params *params,
++			struct netlink_ext_ack *extack)
++{
++	(void)extack;
++
++	return ovpn_newlink_common(dev, params->data);
++}
 +#else
 +static int ovpn_newlink(struct net *src_net, struct net_device *dev,
 +			struct nlattr *tb[], struct nlattr *data[],
 +			struct netlink_ext_ack *extack)
 +{
-+	struct ovpn_priv *ovpn = netdev_priv(dev);
-+	enum ovpn_mode mode = OVPN_MODE_P2P;
++	(void)src_net;
++	(void)tb;
++	(void)extack;
 +
-+	if (data && data[IFLA_OVPN_MODE]) {
-+		mode = nla_get_u8(data[IFLA_OVPN_MODE]);
-+		netdev_dbg(dev, "setting device mode: %u\n", mode);
-+	}
-+
-+	ovpn->dev = dev;
-+	ovpn->mode = mode;
-+	spin_lock_init(&ovpn->lock);
-+	INIT_DELAYED_WORK(&ovpn->keepalive_work, ovpn_peer_keepalive_work);
-+
-+	/* Set carrier explicitly after registration, this way state is
-+	 * clearly defined.
-+	 *
-+	 * In case of MP interfaces we keep the carrier always on.
-+	 *
-+	 * Carrier for P2P interfaces is initially off and it is then
-+	 * switched on and off when the remote peer is added or deleted.
-+	 */
-+	if (ovpn->mode == OVPN_MODE_MP)
-+		netif_carrier_on(dev);
-+	else
-+		netif_carrier_off(dev);
-+
-+	return register_netdevice(dev);
++	return ovpn_newlink_common(dev, data);
 +}
 +#endif
- 
++
  static void ovpn_dellink(struct net_device *dev, struct list_head *head)
  {
-@@ -229,10 +282,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
+ 	struct ovpn_priv *ovpn = netdev_priv(dev);
+@@ -229,10 +266,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
  
  static struct rtnl_link_ops ovpn_link_ops = {
  	.kind = "ovpn",
@@ -122,7 +116,7 @@ index 1bb1afe..8925c9a 100644
  	.maxtype = IFLA_OVPN_MAX,
  	.newlink = ovpn_newlink,
  	.dellink = ovpn_dellink,
-@@ -277,3 +334,4 @@ module_exit(ovpn_cleanup);
+@@ -277,3 +318,4 @@ module_exit(ovpn_cleanup);
  MODULE_DESCRIPTION("OpenVPN data channel offload (ovpn)");
  MODULE_AUTHOR("Antonio Quartulli <antonio@openvpn.net>");
  MODULE_LICENSE("GPL");

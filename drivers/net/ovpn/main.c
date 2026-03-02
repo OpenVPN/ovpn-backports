@@ -192,13 +192,9 @@ static void ovpn_setup(struct net_device *dev)
 	SET_NETDEV_DEVTYPE(dev, &ovpn_type);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
-static int ovpn_newlink(struct net_device *dev,
-			struct rtnl_newlink_params *params,
-			struct netlink_ext_ack *extack)
+static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
 {
 	struct ovpn_priv *ovpn = netdev_priv(dev);
-	struct nlattr **data = params->data;
 	enum ovpn_mode mode = OVPN_MODE_P2P;
 
 	if (data && data[IFLA_OVPN_MODE]) {
@@ -226,38 +222,26 @@ static int ovpn_newlink(struct net_device *dev,
 
 	return register_netdevice(dev);
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+static int ovpn_newlink(struct net_device *dev,
+			struct rtnl_newlink_params *params,
+			struct netlink_ext_ack *extack)
+{
+	(void)extack;
+
+	return ovpn_newlink_common(dev, params->data);
+}
 #else
 static int ovpn_newlink(struct net *src_net, struct net_device *dev,
 			struct nlattr *tb[], struct nlattr *data[],
 			struct netlink_ext_ack *extack)
 {
-	struct ovpn_priv *ovpn = netdev_priv(dev);
-	enum ovpn_mode mode = OVPN_MODE_P2P;
+	(void)src_net;
+	(void)tb;
+	(void)extack;
 
-	if (data && data[IFLA_OVPN_MODE]) {
-		mode = nla_get_u8(data[IFLA_OVPN_MODE]);
-		netdev_dbg(dev, "setting device mode: %u\n", mode);
-	}
-
-	ovpn->dev = dev;
-	ovpn->mode = mode;
-	spin_lock_init(&ovpn->lock);
-	INIT_DELAYED_WORK(&ovpn->keepalive_work, ovpn_peer_keepalive_work);
-
-	/* Set carrier explicitly after registration, this way state is
-	 * clearly defined.
-	 *
-	 * In case of MP interfaces we keep the carrier always on.
-	 *
-	 * Carrier for P2P interfaces is initially off and it is then
-	 * switched on and off when the remote peer is added or deleted.
-	 */
-	if (ovpn->mode == OVPN_MODE_MP)
-		netif_carrier_on(dev);
-	else
-		netif_carrier_off(dev);
-
-	return register_netdevice(dev);
+	return ovpn_newlink_common(dev, data);
 }
 #endif
 

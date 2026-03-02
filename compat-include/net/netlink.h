@@ -11,24 +11,28 @@
 #endif /* __NLA_ENSURE */
 
 #ifndef NLA_ENSURE_INT_TYPE
-#define NLA_ENSURE_INT_TYPE(tp) (tp)
+#define NLA_ENSURE_INT_TYPE(tp) { .type = tp }
 #endif /* NLA_ENSURE_INT_TYPE */
 
 #ifndef NLA_POLICY_RANGE
-#define NLA_POLICY_RANGE(tp, _min, _max) (0)
+#define NLA_POLICY_RANGE(tp, _min, _max) { .type = tp }
 #endif /* NLA_POLICY_RANGE */
 
 #ifndef NLA_POLICY_MIN
-#define NLA_POLICY_MIN(tp, _min) (0)
+#define NLA_POLICY_MIN(tp, _min) { .type = tp }
 #endif /* NLA_POLICY_MIN */
 
 #ifndef NLA_POLICY_MAX
-#define NLA_POLICY_MAX(tp, _max) (0)
+#define NLA_POLICY_MAX(tp, _max) { .type = tp }
 #endif /* NLA_POLICY_MAX */
 
 #ifndef NLA_POLICY_EXACT_LEN
-#define NLA_POLICY_EXACT_LEN(_len) (0)
+#define NLA_POLICY_EXACT_LEN(_len) { .len = _len }
 #endif /* NLA_POLICY_EXACT_LEN */
+
+#ifndef NLA_POLICY_VALIDATE_FN
+#define NLA_POLICY_VALIDATE_FN(tp, _range) { .type = tp }
+#endif /* NLA_POLICY_VALIDATE_FN */
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0) */
 
@@ -36,12 +40,12 @@
 
 #ifndef _NLA_POLICY_NESTED
 #define _NLA_POLICY_NESTED(maxattr, policy) \
-	{ .type = NLA_NESTED, .validation_data = policy, .len = maxattr }
+	{ .type = NLA_NESTED, .validation_data = (void *)(policy), .len = maxattr }
 #endif /* _NLA_POLICY_NESTED */
 
 #ifndef _NLA_POLICY_NESTED_ARRAY
 #define _NLA_POLICY_NESTED_ARRAY(maxattr, policy) \
-	{ .type = NLA_NESTED_ARRAY, .validation_data = policy, .len = maxattr }
+	{ .type = NLA_NESTED_ARRAY, .validation_data = (void *)(policy), .len = maxattr }
 #endif /* _NLA_POLICY_NESTED_ARRAY */
 
 #if RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 10)

@@ -13,10 +13,8 @@
 #include <linux/udp.h>
 #include <net/addrconf.h>
 #include <net/dst_cache.h>
+#include <net/ip6_route.h>
 #include <net/route.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0) || RHEL_RELEASE_CODE != 0
-#include <net/ipv6_stubs.h>
-#endif
 #include <net/transp_v6.h>
 #include <net/udp.h>
 #include <net/udp_tunnel.h>
@@ -128,11 +126,7 @@ static int ovpn_udp_encap_recv(struct sock *sk, struct sk_buff *skb)
 	return 0;
 
 drop:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 	dev_dstats_rx_dropped(ovpn->dev);
-#else
-	dev_core_stats_rx_dropped_inc(ovpn->dev);
-#endif
 drop_noovpn:
 	kfree_skb(skb);
 	return 0;
@@ -203,13 +197,9 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
 	dst_cache_set_ip4(cache, &rt->dst, fl.saddr);
 
 transmit:
-	udp_tunnel_xmit_skb(rt, sk, skb, fl.saddr, fl.daddr, 0,
-			    ip4_dst_hoplimit(&rt->dst), 0, fl.fl4_sport,
-			    fl.fl4_dport, false, sk->sk_no_check_tx
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
-			    , 0
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
-			    );
+	ovpn_udp_tunnel_xmit_skb(rt, sk, skb, fl.saddr, fl.daddr, 0,
+				 ip4_dst_hoplimit(&rt->dst), 0, fl.fl4_sport,
+				 fl.fl4_dport, false, sk->sk_no_check_tx);
 	ret = 0;
 err:
 	local_bh_enable();
@@ -261,14 +251,8 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
 		dst_cache_reset(cache);
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5) || RHEL_RELEASE_CODE != 0
-	dst = ipv6_stub->ipv6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
+	dst = ovpn_ipv6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
 	if (IS_ERR(dst)) {
-#else
-	int err;
-	err = ipv6_stub->ipv6_dst_lookup(sock_net(sk), NULL, &dst, &fl);
-	if (err || IS_ERR(dst)) {
-#endif
 		ret = PTR_ERR(dst);
 		net_dbg_ratelimited("%s: no route to host %pISpc: %d\n",
 				    netdev_name(peer->ovpn->dev),
@@ -288,13 +272,9 @@ transmit:
 	 * udp_tunnel_xmit_skb()
 	 */
 	skb->ignore_df = 1;
-	udp_tunnel6_xmit_skb(dst, sk, skb, skb->dev, &fl.saddr, &fl.daddr, 0,
-			     ip6_dst_hoplimit(dst), 0, fl.fl6_sport,
-			     fl.fl6_dport, udp_get_no_check6_tx(sk)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
-			     , 0
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0) */
-			     );
+	ovpn_udp_tunnel6_xmit_skb(dst, sk, skb, skb->dev, &fl.saddr, &fl.daddr,
+				  0, ip6_dst_hoplimit(dst), 0, fl.fl6_sport,
+				  fl.fl6_dport, udp_get_no_check6_tx(sk));
 	ret = 0;
 err:
 	local_bh_enable();
@@ -456,18 +436,12 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
 	struct sock *sk = ovpn_sock->sk;
 
 	/* Re-enable multicast loopback */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
-	inet_set_bit(MC_LOOP, sk);
-#else
-	inet_sk(sk)->mc_loop = 1;
-#endif
+	ovpn_udp_set_mc_loop(sk);
 	/* Disable CHECKSUM_UNNECESSARY to CHECKSUM_COMPLETE conversion */
 	inet_dec_convert_csum(sk);
 
 	WRITE_ONCE(udp_sk(sk)->encap_type, 0);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
-	udp_sk(sk)->encap_err_rcv = NULL;
-#endif
+	ovpn_udp_clear_encap_err_rcv(sk);
 	WRITE_ONCE(udp_sk(sk)->encap_destroy, NULL);
 
 	rcu_assign_sk_user_data(sk, NULL);

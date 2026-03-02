@@ -7,14 +7,10 @@
  */
 
 #include <linux/skbuff.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 0)
-#include <net/busy_poll.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
 #include <net/hotdata.h>
-#endif
 #include <net/inet_common.h>
 #include <net/ipv6.h>
+#include <net/sock.h>
 #include <net/tcp.h>
 #include <net/transp_v6.h>
 #include <net/route.h>
@@ -144,220 +140,10 @@ err:
 	if (WARN_ON(!ovpn_peer_hold(peer)))
 		goto err_nopeer;
 	schedule_work(&peer->tcp.defer_del_work);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 	dev_dstats_rx_dropped(peer->ovpn->dev);
-#else
-	dev_core_stats_rx_dropped_inc(peer->ovpn->dev);
-#endif
 err_nopeer:
 	kfree_skb(skb);
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8, 0)
-static struct sk_buff *ovpn_skb_set_peeked(struct sk_buff *skb)
-{
-	struct sk_buff *nskb;
-
-	if (skb->peeked)
-		return skb;
-
-	/* We have to unshare an skb before modifying it. */
-	if (!skb_shared(skb))
-		goto done;
-
-	nskb = skb_clone(skb, GFP_ATOMIC);
-	if (!nskb)
-		return ERR_PTR(-ENOMEM);
-
-	skb->prev->next = nskb;
-	skb->next->prev = nskb;
-	nskb->prev = skb->prev;
-	nskb->next = skb->next;
-
-	consume_skb(skb);
-	skb = nskb;
-
-done:
-	skb->peeked = 1;
-
-	return skb;
-}
-
-static struct sk_buff *ovpn__skb_try_recv_from_queue(struct sk_buff_head *queue,
-						     unsigned int flags,
-						     int *off, int *err,
-						     struct sk_buff **last)
-{
-	bool peek_at_off = false;
-	struct sk_buff *skb;
-	int _off = 0;
-
-	if (unlikely(flags & MSG_PEEK && *off >= 0)) {
-		peek_at_off = true;
-		_off = *off;
-	}
-
-	*last = queue->prev;
-	skb_queue_walk(queue, skb)
-	{
-		if (flags & MSG_PEEK) {
-			if (peek_at_off && _off >= skb->len &&
-			    (_off || skb->peeked)) {
-				_off -= skb->len;
-				continue;
-			}
-			if (!skb->len) {
-				skb = ovpn_skb_set_peeked(skb);
-				if (IS_ERR(skb)) {
-					*err = PTR_ERR(skb);
-					return NULL;
-				}
-			}
-			refcount_inc(&skb->users);
-		} else {
-			__skb_unlink(skb, queue);
-		}
-		*off = _off;
-		return skb;
-	}
-	return NULL;
-}
-
-static struct sk_buff *ovpn__skb_try_recv_datagram(struct sock *sk,
-						   struct sk_buff_head *queue,
-						   unsigned int flags, int *off,
-						   int *err,
-						   struct sk_buff **last)
-{
-	struct sk_buff *skb;
-	unsigned long cpu_flags;
-	/*
-	 * Caller is allowed not to check sk->sk_err before skb_recv_datagram()
-	 */
-	int error = sock_error(sk);
-
-	if (error)
-		goto no_packet;
-
-	do {
-		/* Again only user level code calls this function, so nothing
-		 * interrupt level will suddenly eat the receive_queue.
-		 *
-		 * Look at current nfs client by the way...
-		 * However, this function was correct in any case. 8)
-		 */
-		spin_lock_irqsave(&queue->lock, cpu_flags);
-		skb = ovpn__skb_try_recv_from_queue(queue, flags, off, &error,
-						    last);
-		spin_unlock_irqrestore(&queue->lock, cpu_flags);
-		if (error)
-			goto no_packet;
-		if (skb)
-			return skb;
-
-		if (!sk_can_busy_loop(sk))
-			break;
-
-		sk_busy_loop(sk, flags & MSG_DONTWAIT);
-	} while (READ_ONCE(queue->prev) != *last);
-
-	error = -EAGAIN;
-
-no_packet:
-	*err = error;
-	return NULL;
-}
-
-static inline int ovpn_connection_based(struct sock *sk)
-{
-	return sk->sk_type == SOCK_SEQPACKET || sk->sk_type == SOCK_STREAM;
-}
-
-static int ovpn_receiver_wake_function(wait_queue_entry_t *wait,
-				       unsigned int mode, int sync, void *key)
-{
-	/*
-	 * Avoid a wakeup if event not interesting for us
-	 */
-	if (key && !(key_to_poll(key) & (EPOLLIN | EPOLLERR)))
-		return 0;
-	return autoremove_wake_function(wait, mode, sync, key);
-}
-
-static int ovpn__skb_wait_for_more_packets(struct sock *sk,
-					   struct sk_buff_head *queue, int *err,
-					   long *timeo_p,
-					   const struct sk_buff *skb)
-{
-	int error;
-	DEFINE_WAIT_FUNC(wait, ovpn_receiver_wake_function);
-
-	prepare_to_wait_exclusive(sk_sleep(sk), &wait, TASK_INTERRUPTIBLE);
-
-	/* Socket errors? */
-	error = sock_error(sk);
-	if (error)
-		goto out_err;
-
-	if (READ_ONCE(queue->prev) != skb)
-		goto out;
-
-	/* Socket shut down? */
-	if (sk->sk_shutdown & RCV_SHUTDOWN)
-		goto out_noerr;
-
-	/* Sequenced packets can come disconnected.
-	 * If so we report the problem
-	 */
-	error = -ENOTCONN;
-	if (ovpn_connection_based(sk) &&
-	    !(sk->sk_state == TCP_ESTABLISHED || sk->sk_state == TCP_LISTEN))
-		goto out_err;
-
-	/* handle signals */
-	if (signal_pending(current))
-		goto interrupted;
-
-	error = 0;
-	*timeo_p = schedule_timeout(*timeo_p);
-out:
-	finish_wait(sk_sleep(sk), &wait);
-	return error;
-interrupted:
-	error = sock_intr_errno(*timeo_p);
-out_err:
-	*err = error;
-	goto out;
-out_noerr:
-	*err = 0;
-	error = 1;
-	goto out;
-}
-
-static struct sk_buff *ovpn__skb_recv_datagram(struct sock *sk,
-					       struct sk_buff_head *sk_queue,
-					       unsigned int flags, int *off,
-					       int *err)
-{
-	struct sk_buff *skb, *last;
-	long timeo;
-
-	timeo = sock_rcvtimeo(sk, flags & MSG_DONTWAIT);
-
-	do {
-		skb = ovpn__skb_try_recv_datagram(sk, sk_queue, flags, off, err,
-						  &last);
-		if (skb)
-			return skb;
-
-		if (*err != -EAGAIN)
-			break;
-	} while (timeo && !ovpn__skb_wait_for_more_packets(sk, sk_queue, err,
-							   &timeo, last));
-
-	return NULL;
-}
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
@@ -385,15 +171,8 @@ static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 	peer = sock->peer;
 	rcu_read_unlock();
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0) || RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(8, 10)
-	skb = __skb_recv_datagram(sk, &peer->tcp.user_queue, flags, &off, &err);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) || RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(8, 0)
-	skb = __skb_recv_datagram(sk, &peer->tcp.user_queue, flags, NULL, &off,
-				  &err);
-#else
-	skb = ovpn__skb_recv_datagram(sk, &peer->tcp.user_queue, flags, &off,
-				      &err);
-#endif
+	skb = ovpn_skb_recv_datagram(sk, &peer->tcp.user_queue, flags, &off,
+				     &err);
 	if (!skb) {
 		if (err == -EAGAIN && sk->sk_shutdown & RCV_SHUTDOWN) {
 			ret = 0;
@@ -506,11 +285,7 @@ static void ovpn_tcp_send_sock(struct ovpn_peer *peer, struct sock *sk)
 
 	if (!peer->tcp.out_msg.len) {
 		preempt_disable();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 		dev_dstats_tx_add(peer->ovpn->dev, skb->len);
-#else
-		dev_sw_netstats_tx_add(peer->ovpn->dev, 1, skb->len);
-#endif
 		preempt_enable();
 	}
 
@@ -542,11 +317,7 @@ static void ovpn_tcp_send_sock_skb(struct ovpn_peer *peer, struct sock *sk,
 		ovpn_tcp_send_sock(peer, sk);
 
 	if (peer->tcp.out_msg.skb) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 		dev_dstats_tx_dropped(peer->ovpn->dev);
-#else
-		dev_core_stats_tx_dropped_inc(peer->ovpn->dev);
-#endif
 		kfree_skb(skb);
 		return;
 	}
@@ -567,16 +338,8 @@ void ovpn_tcp_send_skb(struct ovpn_peer *peer, struct sock *sk,
 	spin_lock_nested(&sk->sk_lock.slock, OVPN_TCP_DEPTH_NESTING);
 	if (sock_owned_by_user(sk)) {
 		if (skb_queue_len(&peer->tcp.out_queue) >=
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
-		    READ_ONCE(net_hotdata.max_backlog)) {
-#else
-		    netdev_max_backlog) {
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
+		    ovpn_tcp_max_backlog()) {
 			dev_dstats_tx_dropped(peer->ovpn->dev);
-#else
-			dev_core_stats_tx_dropped_inc(peer->ovpn->dev);
-#endif
 			kfree_skb(skb);
 			goto unlock;
 		}
@@ -792,9 +555,7 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
 
 	/* avoid using task_frag */
 	ovpn_sock->sk->sk_allocation = GFP_ATOMIC;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0) || RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 3)
-	ovpn_sock->sk->sk_use_task_frag = false;
-#endif
+	ovpn_sock_disable_task_frag(ovpn_sock->sk);
 
 	/* enqueue the RX worker */
 	strp_check_rcv(&peer->tcp.strp);
@@ -824,15 +585,33 @@ static void ovpn_tcp_close(struct sock *sk, long timeout)
 static __poll_t ovpn_tcp_poll(struct file *file, struct socket *sock,
 			      poll_table *wait)
 {
-	__poll_t mask = datagram_poll(file, sock, wait);
+	struct sk_buff_head *queue = &sock->sk->sk_receive_queue;
 	struct ovpn_socket *ovpn_sock;
+	struct ovpn_peer *peer = NULL;
+	__poll_t mask;
 
 	rcu_read_lock();
 	ovpn_sock = rcu_dereference_sk_user_data(sock->sk);
-	if (ovpn_sock && ovpn_sock->peer &&
-	    !skb_queue_empty(&ovpn_sock->peer->tcp.user_queue))
-		mask |= EPOLLIN | EPOLLRDNORM;
+	/* if we landed in this callback, we expect to have a
+	 * meaningful state. The ovpn_socket lifecycle would
+	 * prevent it otherwise.
+	 */
+	if (WARN(!ovpn_sock || !ovpn_sock->peer,
+		 "ovpn: null state in ovpn_tcp_poll!")) {
+		rcu_read_unlock();
+		return 0;
+	}
+
+	if (ovpn_peer_hold(ovpn_sock->peer)) {
+		peer = ovpn_sock->peer;
+		queue = &peer->tcp.user_queue;
+	}
 	rcu_read_unlock();
+
+	mask = datagram_poll_queue(file, sock, wait, queue);
+
+	if (peer)
+		ovpn_peer_put(peer);
 
 	return mask;
 }
