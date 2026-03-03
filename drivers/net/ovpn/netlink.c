@@ -9,9 +9,6 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0) && RHEL_RELEASE_CODE == 0
 #include <linux/file.h>
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0) && RHEL_RELEASE_CODE == 0
-#include <uapi/linux/netfilter/nfnetlink.h>
-#endif
 #include <linux/netdevice.h>
 #include <linux/types.h>
 #include <net/genetlink.h>

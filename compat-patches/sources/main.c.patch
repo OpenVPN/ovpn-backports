@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/main.c b/drivers/net/ovpn/main.c
-index 1bb1afe..968d66a 100644
+index 2e0420f..d6564ee 100644
 --- a/drivers/net/ovpn/main.c
 +++ b/drivers/net/ovpn/main.c
 @@ -85,6 +85,12 @@ static int ovpn_net_init(struct net_device *dev)

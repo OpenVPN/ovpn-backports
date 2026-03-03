@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/bind.c b/drivers/net/ovpn/bind.c
-index 24d2788..1f29e29 100644
+index e42b60c..9b63e66 100644
 --- a/drivers/net/ovpn/bind.c
 +++ b/drivers/net/ovpn/bind.c
 @@ -48,8 +48,11 @@ struct ovpn_bind *ovpn_bind_from_sockaddr(const struct sockaddr_storage *ss)
