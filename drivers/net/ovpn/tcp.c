@@ -167,9 +167,12 @@ err_nopeer:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 			    int noblock, int flags, int *addr_len)
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 			    int flags, int *addr_len)
+#else
+static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
+			    int flags)
 #endif
 {
 	int err = 0, off, copied = 0, ret;
@@ -190,8 +193,7 @@ static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 	peer = sock->peer;
 	rcu_read_unlock();
 
-	skb = ovpn_skb_recv_datagram(sk, &peer->tcp.user_queue, flags, &off,
-				     &err);
+	skb = ovpn_skb_recv_datagram(sk, &peer->tcp.user_queue, flags, &off, &err);
 	if (!skb) {
 		if (err == -EAGAIN && sk->sk_shutdown & RCV_SHUTDOWN) {
 			ret = 0;

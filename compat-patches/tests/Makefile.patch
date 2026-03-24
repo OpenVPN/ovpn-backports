@@ -1,16 +1,17 @@
 diff --git a/tests/ovpn-cli/Makefile b/tests/ovpn-cli/Makefile
-index dbe0388..d20944c 100644
+index 169f046..1dfd13d 100644
 --- a/tests/ovpn-cli/Makefile
 +++ b/tests/ovpn-cli/Makefile
-@@ -8,6 +8,7 @@ VAR_CFLAGS = -I/usr/include/libnl3
+@@ -10,6 +10,8 @@ VAR_CFLAGS = -I/usr/include/libnl3
  endif
  CFLAGS += $(VAR_CFLAGS)
  
 +CFLAGS += -I../../include/uapi -I..
- 
- LDLIBS = -lmbedtls -lmbedcrypto
- VAR_LDLIBS = $(shell pkg-config --libs libnl-3.0 libnl-genl-3.0 2>/dev/null)
-@@ -31,4 +32,9 @@ TEST_PROGS := \
++
+ MTLS_LDLIBS= $(shell pkg-config --libs mbedcrypto-3 mbedtls-3 2>/dev/null)
+ ifeq ($(MTLS_LDLIBS),)
+ MTLS_LDLIBS = -lmbedtls -lmbedcrypto
+@@ -48,4 +50,9 @@ TEST_PROGS := \
  
  TEST_GEN_FILES := ovpn-cli
  

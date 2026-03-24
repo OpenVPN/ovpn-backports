@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ovpn/peer.c b/drivers/net/ovpn/peer.c
-index 3716a1d..c1354ef 100644
+index 26b55d8..8ff61fe 100644
 --- a/drivers/net/ovpn/peer.c
 +++ b/drivers/net/ovpn/peer.c
-@@ -410,7 +410,7 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
+@@ -416,7 +416,7 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
  {
  	const struct rtable *rt = skb_rtable(skb);
  
@@ -11,7 +11,7 @@ index 3716a1d..c1354ef 100644
  		return rt->rt_gw4;
  
  	return ip_hdr(skb)->daddr;
-@@ -791,7 +791,7 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
+@@ -797,7 +797,7 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
  		return dest;
  	}
  
@@ -20,7 +20,7 @@ index 3716a1d..c1354ef 100644
  		goto out;
  
  	dest = rt->rt_gw4;
-@@ -821,8 +821,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
+@@ -827,8 +827,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
  		.daddr = dest,
  	};
  

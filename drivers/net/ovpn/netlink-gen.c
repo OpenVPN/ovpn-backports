@@ -27,6 +27,16 @@ static
 #if RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 4)
 const
 #endif
+struct netlink_range_validation ovpn_a_peer_tx_id_range = {
+	.max	= 16777215ULL,
+};
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 10)
+static
+#if RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 4)
+const
+#endif
 struct netlink_range_validation ovpn_a_keyconf_peer_id_range = {
 	.max	= 16777215ULL,
 };
@@ -94,7 +104,7 @@ const struct nla_policy ovpn_keydir_nl_policy[OVPN_A_KEYDIR_NONCE_TAIL + 1] = {
 	[OVPN_A_KEYDIR_NONCE_TAIL] = NLA_POLICY_EXACT_LEN(OVPN_NONCE_TAIL_SIZE),
 };
 
-const struct nla_policy ovpn_peer_nl_policy[OVPN_A_PEER_LINK_TX_PACKETS + 1] = {
+const struct nla_policy ovpn_peer_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
 #else
@@ -122,6 +132,11 @@ const struct nla_policy ovpn_peer_nl_policy[OVPN_A_PEER_LINK_TX_PACKETS + 1] = {
 	[OVPN_A_PEER_LINK_TX_BYTES] = { .type = NLA_UINT, },
 	[OVPN_A_PEER_LINK_RX_PACKETS] = { .type = NLA_UINT, },
 	[OVPN_A_PEER_LINK_TX_PACKETS] = { .type = NLA_UINT, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_tx_id_range),
+#else
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 };
 
 const struct nla_policy ovpn_peer_del_input_nl_policy[OVPN_A_PEER_ID + 1] = {
@@ -132,7 +147,7 @@ const struct nla_policy ovpn_peer_del_input_nl_policy[OVPN_A_PEER_ID + 1] = {
 #endif
 };
 
-const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIMEOUT + 1] = {
+const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
 #else
@@ -149,9 +164,14 @@ const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIME
 	[OVPN_A_PEER_LOCAL_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = { .type = NLA_U32, },
 	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = { .type = NLA_U32, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_tx_id_range),
+#else
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 };
 
-const struct nla_policy ovpn_peer_set_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIMEOUT + 1] = {
+const struct nla_policy ovpn_peer_set_input_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_id_range),
 #else
@@ -167,6 +187,11 @@ const struct nla_policy ovpn_peer_set_input_nl_policy[OVPN_A_PEER_KEEPALIVE_TIME
 	[OVPN_A_PEER_LOCAL_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = { .type = NLA_U32, },
 	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = { .type = NLA_U32, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_tx_id_range),
+#else
+	[OVPN_A_PEER_TX_ID] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_range),
+#endif
 };
 
 /* OVPN_CMD_PEER_NEW - do */
@@ -229,16 +254,14 @@ static const struct nla_policy ovpn_key_del_nl_policy[OVPN_A_KEYCONF + 1] = {
 static const struct genl_split_ops ovpn_nl_ops[] = {
 	{
 		.cmd		= OVPN_CMD_PEER_NEW,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_peer_new_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_peer_new_nl_policy, OVPN_A_PEER)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
 	},
 	{
 		.cmd		= OVPN_CMD_PEER_SET,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_peer_set_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_peer_set_nl_policy, OVPN_A_PEER)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
@@ -246,8 +269,7 @@ static const struct genl_split_ops ovpn_nl_ops[] = {
 #if OVPN_GENL_OPS_HAS_SPLIT_DOIT_HOOKS
 	{
 		.cmd		= OVPN_CMD_PEER_GET,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_peer_get_doit,
 		.policy		= ovpn_peer_get_do_nl_policy,
 		.maxattr	= OVPN_A_PEER,
@@ -265,47 +287,41 @@ static const struct genl_split_ops ovpn_nl_ops[] = {
 		.cmd		= OVPN_CMD_PEER_GET,
 		.doit		= ovpn_nl_peer_get_doit,
 		.dumpit		= ovpn_nl_peer_get_dumpit,
-		OVPN_GENL_OPS_POLICY_LEGACY_PEER_GET(ovpn_peer_get_do_nl_policy,
-						     OVPN_A_PEER)
+		OVPN_GENL_OPS_POLICY_LEGACY_PEER_GET(ovpn_peer_get_do_nl_policy, OVPN_A_PEER)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO | GENL_CMD_CAP_DUMP,
 	},
 #endif
 	{
 		.cmd		= OVPN_CMD_PEER_DEL,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_peer_del_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_peer_del_nl_policy, OVPN_A_PEER)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
 	},
 	{
 		.cmd		= OVPN_CMD_KEY_NEW,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_key_new_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_key_new_nl_policy, OVPN_A_KEYCONF)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
 	},
 	{
 		.cmd		= OVPN_CMD_KEY_GET,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_key_get_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_key_get_nl_policy, OVPN_A_KEYCONF)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
 	},
 	{
 		.cmd		= OVPN_CMD_KEY_SWAP,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_key_swap_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_key_swap_nl_policy, OVPN_A_KEYCONF)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
 	},
 	{
 		.cmd		= OVPN_CMD_KEY_DEL,
-		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit,
-					       ovpn_nl_post_doit)
+		OVPN_GENL_OPS_SPLIT_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit)
 		.doit		= ovpn_nl_key_del_doit,
 		OVPN_GENL_OPS_POLICY(ovpn_key_del_nl_policy, OVPN_A_KEYCONF)
 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
@@ -326,6 +342,5 @@ struct genl_family ovpn_nl_family __ro_after_init = {
 	.n_split_ops	= ARRAY_SIZE(ovpn_nl_ops),
 	.mcgrps		= ovpn_nl_mcgrps,
 	.n_mcgrps	= ARRAY_SIZE(ovpn_nl_mcgrps),
-	OVPN_GENL_FAMILY_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit,
-				    OVPN_A_MAX)
+	OVPN_GENL_FAMILY_DOIT_HOOKS(ovpn_nl_pre_doit, ovpn_nl_post_doit, OVPN_A_MAX)
 };
