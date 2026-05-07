@@ -1,18 +1,16 @@
 diff --git a/drivers/net/ovpn/udp.c b/drivers/net/ovpn/udp.c
-index 272b535..2949e26 100644
+index 059e896..2949e26 100644
 --- a/drivers/net/ovpn/udp.c
 +++ b/drivers/net/ovpn/udp.c
-@@ -13,8 +13,8 @@
+@@ -13,6 +13,7 @@
  #include <linux/udp.h>
  #include <net/addrconf.h>
  #include <net/dst_cache.h>
 +#include <net/ip6_route.h>
  #include <net/route.h>
--#include <net/ipv6_stubs.h>
  #include <net/transp_v6.h>
  #include <net/udp.h>
- #include <net/udp_tunnel.h>
-@@ -197,9 +197,9 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+@@ -196,9 +197,9 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
  	dst_cache_set_ip4(cache, &rt->dst, fl.saddr);
  
  transmit:
@@ -25,16 +23,16 @@ index 272b535..2949e26 100644
  	ret = 0;
  err:
  	local_bh_enable();
-@@ -251,7 +251,7 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+@@ -250,7 +251,7 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
  		dst_cache_reset(cache);
  	}
  
--	dst = ipv6_stub->ipv6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
+-	dst = ip6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
 +	dst = ovpn_ipv6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
  	if (IS_ERR(dst)) {
  		ret = PTR_ERR(dst);
  		net_dbg_ratelimited("%s: no route to host %pISpc: %d\n",
-@@ -272,9 +272,9 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+@@ -271,9 +272,9 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
  	 * udp_tunnel_xmit_skb()
  	 */
  	skb->ignore_df = 1;
@@ -47,7 +45,7 @@ index 272b535..2949e26 100644
  	ret = 0;
  err:
  	local_bh_enable();
-@@ -437,12 +437,12 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
+@@ -436,12 +437,12 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
  	struct sock *sk = ovpn_sock->sk;
  
  	/* Re-enable multicast loopback */
