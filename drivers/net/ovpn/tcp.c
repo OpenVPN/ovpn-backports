@@ -167,7 +167,7 @@ err_nopeer:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 			    int noblock, int flags, int *addr_len)
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 0)
 static int ovpn_tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 			    int flags, int *addr_len)
 #else
