@@ -6,22 +6,25 @@
 #include <net/udp.h>
 #include_next <net/udp_tunnel.h>
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 189) && RHEL_RELEASE_CODE == 0
+/* v7.2: setup_udp_tunnel_sock() takes struct sock instead of struct socket. */
 static inline void
-ovpn_setup_udp_tunnel_sock(struct net *net, struct socket *sock,
+ovpn_setup_udp_tunnel_sock(struct net *net, struct sock *sk,
 			   struct udp_tunnel_sock_cfg *cfg)
 {
-	setup_udp_tunnel_sock(net, sock, cfg);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 2, 0)
+	setup_udp_tunnel_sock(net, sk->sk_socket, cfg);
+#else
+	setup_udp_tunnel_sock(net, sk, cfg);
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(7, 2, 0) */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 189) && RHEL_RELEASE_CODE == 0
 	/* Pre-v5.4 only enables the IPv6 encap key for PF_INET6 sockets.
 	 * Ensure IPv4 receive path is also encap-enabled for dual-stack sockets.
 	 */
-	if (sock->sk->sk_family == PF_INET6)
+	if (sk->sk_family == PF_INET6)
 		udp_encap_enable();
-}
-
-#define setup_udp_tunnel_sock ovpn_setup_udp_tunnel_sock
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 189) && RHEL_RELEASE_CODE == 0 */
+}
 
 static inline void
 ovpn_udp_tunnel_xmit_skb(struct rtable *rt, struct sock *sk,
