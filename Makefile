@@ -2,6 +2,12 @@ PWD:=$(shell pwd)
 KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
 KERNEL_CFG ?= $(KERNEL_SRC)/.config
 OVPN_CFG = $(PWD)/ovpn.config
+KSELFTEST_DIR = $(PWD)/tools/testing/selftests
+OVPN_SELFTEST_DIR = $(KSELFTEST_DIR)/net/ovpn
+OVPN_SELFTEST_FLAGS = \
+	TARGETS=net/ovpn \
+	SKIP_TARGETS= \
+	KHDR_INCLUDES="-I$(PWD)/include/uapi"
 
 ifeq ($(shell cd $(KERNEL_SRC) && pwd),)
 $(error $(KERNEL_SRC) is missing, please set KERNEL_SRC)
@@ -69,15 +75,26 @@ check-config:
 	done < $(OVPN_CFG)
 	@echo "Kernel configuration check passed."
 
+check-selftests:
+	@if [ ! -f "$(OVPN_SELFTEST_DIR)/Makefile" ]; then \
+		echo "Error: ovpn selftests are missing, run './backports-ctl.sh get-ovpn -t'" >&2; \
+		exit 1; \
+	fi
+
+selftests: check-selftests
+	$(MAKE) -C $(KSELFTEST_DIR) $(OVPN_SELFTEST_FLAGS) all
+
+run_tests: check-selftests
+	$(MAKE) -C $(KSELFTEST_DIR) $(OVPN_SELFTEST_FLAGS) run_tests
+
 clean:
 	$(MAKE) -C $(KERNEL_SRC) $(BUILD_FLAGS) clean
-	$(MAKE) -C $(PWD)/tests/ovpn-cli $(BUILD_FLAGS) clean
+	@if [ -f "$(OVPN_SELFTEST_DIR)/Makefile" ]; then \
+		$(MAKE) -C $(KSELFTEST_DIR) $(OVPN_SELFTEST_FLAGS) clean; \
+	fi
 
 install:
 	$(MAKE) -C $(KERNEL_SRC) $(BUILD_FLAGS) modules_install
 	$(DEPMOD)
 
-ovpn-cli:
-	$(MAKE) -C $(PWD)/tests/ovpn-cli $(BUILD_FLAGS) ovpn-cli
-
-.PHONY: all debug check-config clean install ovpn-cli
+.PHONY: all debug check-config check-selftests selftests run_tests clean install

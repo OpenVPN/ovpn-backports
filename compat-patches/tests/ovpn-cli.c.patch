@@ -1,12 +1,12 @@
-diff --git a/tests/ovpn-cli/ovpn-cli.c b/tests/ovpn-cli/ovpn-cli.c
-index d409533..61584fb 100644
---- a/tests/ovpn-cli/ovpn-cli.c
-+++ b/tests/ovpn-cli/ovpn-cli.c
+diff --git a/tools/testing/selftests/net/ovpn/ovpn-cli.c b/tools/testing/selftests/net/ovpn/ovpn-cli.c
+index d409533..c6982ba 100644
+--- a/tools/testing/selftests/net/ovpn/ovpn-cli.c
++++ b/tools/testing/selftests/net/ovpn/ovpn-cli.c
 @@ -18,6 +18,7 @@
  #include <netinet/in.h>
  #include <time.h>
  
-+#include <ovpn-cli.h>
++#include "ovpn-cli.h"
  #include <linux/ovpn.h>
  #include <linux/types.h>
  #include <linux/netlink.h>

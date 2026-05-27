@@ -1,0 +1,65 @@
+diff --git a/tools/net/ynl/pyynl/cli.py b/tools/net/ynl/pyynl/cli.py
+index 602ff68c23e0..fc9a56170091 100755
+--- a/tools/net/ynl/pyynl/cli.py
++++ b/tools/net/ynl/pyynl/cli.py
+@@ -261,7 +261,10 @@ def main():
+     dbg_group.add_argument('--dbg-small-recv', default=0, const=4000,
+                            action='store', nargs='?', type=int, metavar='INT',
+                            help="Length of buffers used for recv()")
+-    dbg_group.add_argument('--process-unknown', action=argparse.BooleanOptionalAction)
++    if hasattr(argparse, 'BooleanOptionalAction'):
++        dbg_group.add_argument('--process-unknown', action=argparse.BooleanOptionalAction)
++    else:
++        dbg_group.add_argument('--process-unknown', action='store_true')
+ 
+     args = parser.parse_args()
+ 
+@@ -274,7 +277,7 @@ def main():
+ 
+     if args.list_families:
+         for filename in sorted(os.listdir(spec_dir())):
+             if filename.endswith('.yaml'):
+-                print(filename.removesuffix('.yaml'))
++                print(filename[:-5])
+         return
+ 
+     if args.no_schema:
+diff --git a/tools/net/ynl/pyynl/lib/nlspec.py b/tools/net/ynl/pyynl/lib/nlspec.py
+index e92a103e3c57..d374fbb7a561 100644
+--- a/tools/net/ynl/pyynl/lib/nlspec.py
++++ b/tools/net/ynl/pyynl/lib/nlspec.py
+@@ -227,7 +227,8 @@ class SpecAttrSet(SpecElement):
+         else:
+             real_set = family.attr_sets[self.subset_of]
+             for elem in self.yaml['attributes']:
+                 real_attr = real_set[elem['name']]
+-                combined_elem = real_attr.yaml | elem
++                combined_elem = real_attr.yaml.copy()
++                combined_elem.update(elem)
+                 attr = self.new_attr(combined_elem, real_attr.value)
+ 
+                 self.attrs[attr.name] = attr
+diff --git a/tools/net/ynl/pyynl/lib/ynl.py b/tools/net/ynl/pyynl/lib/ynl.py
+index 74743bc71bf9..84db0101d122 100644
+--- a/tools/net/ynl/pyynl/lib/ynl.py
++++ b/tools/net/ynl/pyynl/lib/ynl.py
+@@ -13,4 +13,5 @@ An implementation of the genetlink and raw netlink protocols.
+ from collections import namedtuple
+ from enum import Enum
++import errno
+ import functools
+ import os
+@@ -718,7 +719,11 @@ class YnlFamily(SpecFamily):
+         self.sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, self.nlproto.proto_num)
+         self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_CAP_ACK, 1)
+         self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_EXT_ACK, 1)
+-        self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_GET_STRICT_CHK, 1)
+-
++        try:
++            self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_GET_STRICT_CHK, 1)
++        except OSError as err:
++            if err.errno != errno.ENOPROTOOPT:
++                raise
++
+         self.async_msg_ids = set()
+         self.async_msg_queue = queue.Queue()

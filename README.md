@@ -50,6 +50,8 @@ The first step is to get the latest ovpn sources through the utility script `bac
 
 Be aware that this command temporarily downloads a full kernel tree, extracts the ovpn files from it, and applies patches. If you want the kernel repository to persist, run the command with the `--keep` (or `-k`) option. This option keeps the repository in the `kernel` directory as a shallow copy, and subsequent runs will simply update it.
 
+To import the ovpn selftests as well, add the `--tests` (or `-t`) option.
+
 Additionally you can restore the repository to its original state with:
 
 ```sh
@@ -90,8 +92,17 @@ will install the ovpn.ko kernel module in the updates/ subfolder of the kernel m
 
 ## Testing
 
-Alongside the source files, the `tests/ovpn-cli` directory contains kernel selftests and the handy `ovpn-cli` tool. To compile it, simply run `make ovpn-cli` from the root directory of the repository.
-This tool is essential for executing selftests and is also useful for debugging. You can explore its capabilities by running `./ovpn-cli`.
+If the selftests were imported with `backports-ctl.sh get-ovpn -t`, you can build them with:
+
+```sh
+make selftests
+```
+
+After building and installing the module, run the ovpn selftests with:
+
+```sh
+make run_tests
+```
 
 ### Kernel versions
 

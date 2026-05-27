@@ -1,0 +1,28 @@
+diff --git a/tools/testing/selftests/net/ovpn/ovpn-cli.h b/tools/testing/selftests/net/ovpn/ovpn-cli.h
+new file mode 100644
+index 0000000..e48449e
+--- /dev/null
++++ b/tools/testing/selftests/net/ovpn/ovpn-cli.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _OVPN_SELFTEST_OVPN_CLI_H_
++#define _OVPN_SELFTEST_OVPN_CLI_H_
++
++#include <linux/if_link.h>
++
++#ifndef IFLA_OVPN_MAX
++
++enum ovpn_mode {
++	OVPN_MODE_P2P,
++	OVPN_MODE_MP,
++};
++
++enum {
++	IFLA_OVPN_UNSPEC,
++	IFLA_OVPN_MODE,
++	__IFLA_OVPN_MAX,
++};
++
++#define IFLA_OVPN_MAX (__IFLA_OVPN_MAX - 1)
++#endif /* IFLA_OVPN_MAX */
++#endif /* _OVPN_SELFTEST_OVPN_CLI_H_ */

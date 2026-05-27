@@ -19,4 +19,8 @@ net-next
 drivers/
 include/
 tests/ovpn-cli
+tools/testing/selftests/
+tools/net/ynl/
+Documentation/netlink/
+scripts/subarch.include
 ovpn.cfg

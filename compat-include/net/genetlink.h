@@ -52,7 +52,7 @@ static inline struct net *ovpn_genl_info_net(const struct genl_info *info)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) || \
 	RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 5) || \
-	SUSE_PRODUCT_CODE >= SUSE_PRODUCT(1, 15, 6, 0)
+	OVPN_SLE_VERSION_AT_LEAST(15, 6, 0)
 
 #define OVPN_GENL_HAS_DUMP_INFO 1
 

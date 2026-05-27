@@ -10,13 +10,13 @@
 #   - original sources: kernel/drivers/net/ovpn
 #   - original tests:   kernel/tools/testing/selftests/net/ovpn
 #   - modified sources: drivers/net/ovpn
-#   - modified tests:   tests/ovpn-cli
+#   - modified tests:   tools/testing/selftests/net/ovpn
 #
 # Usage:
 #   Ensure that the modified source and test files exist in drivers/net/ovpn
-#   and tests/ovpn-cli respectively relative to your repository root. Then
-#   override ORIG_SOURCES_DIR and ORIG_TESTS_DIR if needed and run the
-#   script.
+#   and tools/testing/selftests/net/ovpn respectively relative to your
+#   repository root. Then override ORIG_SOURCES_DIR and ORIG_TESTS_DIR if
+#   needed and run the script.
 #   It creates patch files in compat-patches/sources and compat-patches/tests
 #   using 'git diff --no-index' (empty patches are removed) and substitutes
 #   original paths with modified ones.
@@ -24,7 +24,7 @@
 ORIG_SOURCES_DIR=${ORIG_SOURCES_DIR:-kernel/drivers/net/ovpn}
 ORIG_TESTS_DIR=${ORIG_TESTS_DIR:-kernel/tools/testing/selftests/net/ovpn}
 MOD_SOURCES_DIR="drivers/net/ovpn"
-MOD_TESTS_DIR="tests/ovpn-cli"
+MOD_TESTS_DIR="tools/testing/selftests/net/ovpn"
 
 # create the escaped version of the directories
 if [[ $ORIG_SOURCES_DIR =~ ^/ ]]; then
@@ -43,6 +43,16 @@ fi
 
 ESC_MOD_SOURCES_DIR="${MOD_SOURCES_DIR//\//\\\/}"
 ESC_MOD_TESTS_DIR="${MOD_TESTS_DIR//\//\\\/}"
+
+is_kernel_build_artifact() {
+	case "$1" in
+		*.ko|*.mod|*.mod.c|*.o|Module.symvers|modules.order)
+			return 0
+			;;
+	esac
+
+	return 1
+}
 
 # remove old patches
 rm -f compat-patches/sources/*.patch
@@ -66,6 +76,20 @@ for filepath in "$ORIG_SOURCES_DIR"/*; do
         sed -i "s/$ESC_ORIG_SOURCES_DIR/$ESC_MOD_SOURCES_DIR/" "$out"
     fi
 done
+for filepath in "$MOD_SOURCES_DIR"/*; do
+    base=$(basename "$filepath")
+    out="compat-patches/sources/${base}.patch"
+    if [[ -f "$filepath" && ! -e "$ORIG_SOURCES_DIR/$base" ]]; then
+        if is_kernel_build_artifact "$base"; then
+            continue
+        fi
+        if git diff --no-index --numstat /dev/null "$filepath" | \
+            grep -q '^-[[:space:]]\+-[[:space:]]'; then
+            continue
+        fi
+        git diff --no-index /dev/null "$filepath" > "$out"
+    fi
+done
 
 # handle the test files
 for filepath in "$ORIG_TESTS_DIR"/*; do
@@ -79,5 +103,16 @@ for filepath in "$ORIG_TESTS_DIR"/*; do
             continue
         fi
         sed -i "s/$ESC_ORIG_TESTS_DIR/$ESC_MOD_TESTS_DIR/" "$out"
+    fi
+done
+for filepath in "$MOD_TESTS_DIR"/*; do
+    base=$(basename "$filepath")
+    out="compat-patches/tests/${base}.patch"
+    if [[ -f "$filepath" && ! -e "$ORIG_TESTS_DIR/$base" ]]; then
+        if git diff --no-index --numstat /dev/null "$filepath" | \
+            grep -q '^-[[:space:]]\+-[[:space:]]'; then
+            continue
+        fi
+        git diff --no-index /dev/null "$filepath" > "$out"
     fi
 done

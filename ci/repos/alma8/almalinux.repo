@@ -1,0 +1,31 @@
+# Used from Ubuntu GitHub runners, where AlmaLinux repo files are not installed.
+# Based on AlmaLinux release repo definitions:
+# https://git.almalinux.org/rpms/almalinux-release/src/branch/a8/almalinux-powertools.repo
+# AlmaLinux 8 uses PowerTools; AlmaLinux 9/10 use CRB instead.
+[baseos]
+name=AlmaLinux $releasever - BaseOS
+baseurl=https://repo.almalinux.org/almalinux/$releasever/BaseOS/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux-$releasever
+
+[appstream]
+name=AlmaLinux $releasever - AppStream
+baseurl=https://repo.almalinux.org/almalinux/$releasever/AppStream/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux-$releasever
+
+[powertools]
+name=AlmaLinux $releasever - PowerTools
+baseurl=https://repo.almalinux.org/almalinux/$releasever/PowerTools/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux-$releasever
+
+[epel]
+name=Extra Packages for Enterprise Linux $releasever
+baseurl=https://dl.fedoraproject.org/pub/epel/$releasever/Everything/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-$releasever

@@ -1,0 +1,92 @@
+---
+name: virtme-ng selftests
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vng-selftests:
+    name: ${{ matrix.distro }} rootfs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - debian-10
+          - debian-11
+          - debian-12
+          - debian-13
+          - ubuntu-20.04
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - ubuntu-25.10
+          - ubuntu-26.04
+          - fedora-44
+          - alma-8
+          - alma-9
+          - alma-10
+          - opensuse-leap-15.6
+          - opensuse-leap-16.0
+          - opensuse-tumbleweed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            busybox-static \
+            ca-certificates \
+            cpio \
+            debian-archive-keyring \
+            dnf \
+            git \
+            make \
+            mmdebstrap \
+            qemu-system-x86 \
+            qemu-utils \
+            rsync \
+            ubuntu-keyring \
+            virtiofsd \
+            virtme-ng
+
+      # RHEL kernels don't support 9p but vng mounts its guesttools using 9p so
+      # we have to use a patched version of vng that avoid 9p completely
+      - name: Checkout patched virtme-ng
+        if: startsWith(matrix.distro, 'alma-')
+        run: |
+          git clone \
+            --depth 1 \
+            --branch root-guesttools \
+            https://github.com/ralflici/virtme-ng.git \
+            "${RUNNER_TEMP}/virtme-ng"
+          git -C "${RUNNER_TEMP}/virtme-ng" rev-parse HEAD
+
+      - name: Build ${{ matrix.distro }} rootfs
+        run: |
+          sudo ./ci/build-rootfs.sh \
+            "${{ matrix.distro }}" \
+            "${RUNNER_TEMP}/rootfs/${{ matrix.distro }}"
+
+      - name: Import ovpn sources and selftests
+        run: |
+          ./backports-ctl.sh get-ovpn -t
+
+      - name: Run selftests in ${{ matrix.distro }}
+        run: |
+          if [[ "${{ matrix.distro }}" == alma-* ]]; then
+            vng="${RUNNER_TEMP}/virtme-ng/vng"
+          else
+            vng="$(command -v vng)"
+          fi
+          sudo env VNG="${vng}" ./ci/run-vng-selftests.sh \
+            "${{ matrix.distro }}" \
+            "${RUNNER_TEMP}/rootfs/${{ matrix.distro }}" \
+            "${GITHUB_WORKSPACE}"
