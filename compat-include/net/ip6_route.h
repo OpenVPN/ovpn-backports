@@ -21,7 +21,7 @@ ovpn_ipv6_dst_lookup_flow(struct net *net, const struct sock *sk,
 			  const struct in6_addr *final_dst)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
-	return ip6_dst_lookup_flow(net, sk, &fl, final_dst);
+	return ip6_dst_lookup_flow(net, sk, fl6, final_dst);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 119) || RHEL_RELEASE_CODE != 0
 	return ipv6_stub->ipv6_dst_lookup_flow(net, sk, fl6, final_dst);
 #else
