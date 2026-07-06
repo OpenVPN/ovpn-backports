@@ -1,0 +1,27 @@
+diff --git a/tools/testing/selftests/net/ovpn/Makefile b/tools/testing/selftests/net/ovpn/Makefile
+index 169f046..cc7a99e 100644
+--- a/tools/testing/selftests/net/ovpn/Makefile
++++ b/tools/testing/selftests/net/ovpn/Makefile
+@@ -2,7 +2,8 @@
+ # Copyright (C) 2020-2025 OpenVPN, Inc.
+ #
+ CFLAGS = -pedantic -Wextra -Wall -Wl,--no-as-needed -g -O0 -ggdb $(KHDR_INCLUDES)
+-CFLAGS += $(shell pkg-config --cflags mbedcrypto-3 mbedtls-3 2>/dev/null)
++CFLAGS += $(shell pkg-config --cflags mbedtls-3 mbedx509-3 mbedcrypto-3 2>/dev/null || \
++	pkg-config --cflags mbedtls mbedx509 mbedcrypto 2>/dev/null)
+ 
+ VAR_CFLAGS = $(shell pkg-config --cflags libnl-3.0 libnl-genl-3.0 2>/dev/null)
+ ifeq ($(VAR_CFLAGS),)
+@@ -10,9 +11,10 @@ VAR_CFLAGS = -I/usr/include/libnl3
+ endif
+ CFLAGS += $(VAR_CFLAGS)
+ 
+-MTLS_LDLIBS= $(shell pkg-config --libs mbedcrypto-3 mbedtls-3 2>/dev/null)
++MTLS_LDLIBS= $(shell pkg-config --libs mbedtls-3 mbedx509-3 mbedcrypto-3 2>/dev/null || \
++	pkg-config --libs mbedtls mbedx509 mbedcrypto 2>/dev/null)
+ ifeq ($(MTLS_LDLIBS),)
+-MTLS_LDLIBS = -lmbedtls -lmbedcrypto
++MTLS_LDLIBS = -lmbedtls -lmbedx509 -lmbedcrypto
+ endif
+ LDLIBS += $(MTLS_LDLIBS)
+ 

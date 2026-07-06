@@ -20,11 +20,6 @@
 #define split_ops ops
 #define n_split_ops n_ops
 
-#ifndef container_of_const
-#define container_of_const(ptr, type, member) \
-	container_of_safe((ptr), (type), (member))
-#endif /* container_of_const */
-
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0) && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 3) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
