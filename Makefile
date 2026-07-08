@@ -28,6 +28,7 @@ VERSION_INCLUDE = -include linux/suse_version.h
 endif
 
 DEBUG ?= 0
+ccflags-y += -Werror
 ifeq ($(DEBUG),1)
     ccflags-y += -g -DDEBUG
 endif
