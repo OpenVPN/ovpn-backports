@@ -53,6 +53,17 @@
 	(!OVPN_SUSE_PRODUCT_IS(SUSE_PRODUCT_CODE_SLE) || \
 	 SUSE_PRODUCT_CODE < SUSE_PRODUCT(SUSE_PRODUCT_CODE_SLE, v, pl, aux))
 
+/*
+ * proto::recvmsg lost the noblock argument in v5.19 and lost the addr_len
+ * argument in v7.1. The addr_len removal was also backported to 6.18.y
+ * starting with v6.18.40 (gregkh/linux@073d957).
+ */
+#define OVPN_PROTO_RECVMSG_HAS_ADDR_LEN \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0) && \
+	 LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 0) && \
+	 !(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 40) && \
+	   LINUX_VERSION_CODE < KERNEL_VERSION(6, 19, 0)))
+
 #include <linux/if_link.h>
 
 #ifndef UDP_ENCAP_OVPNINUDP
