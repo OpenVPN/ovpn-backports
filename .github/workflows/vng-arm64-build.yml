@@ -1,20 +1,19 @@
 ---
-name: virtme-ng x86_64 selftests
+name: virtme-ng arm64 build
 
 "on":
   workflow_dispatch:
-  schedule:
-    - cron: "17 7 * * *"
 
 permissions:
   contents: read
 
 jobs:
-  vng-selftests:
+  vng-arm64-build:
     uses: mandelbitdev/kmod-ci/.github/workflows/out-of-tree-vng.yml@main
     with:
-      cache-prefix: ovpn-backports
-      guest-script: ci/run-selftests.sh
+      arch: arm64
+      cache-prefix: ovpn-backports-arm64
+      guest-script: ci/run-build.sh
       prepare-command: ./backports-ctl.sh get-ovpn -t
     secrets:
       RHEL_ORG_ID: ${{ secrets.RHEL_ORG_ID }}

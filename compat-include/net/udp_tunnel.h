@@ -6,16 +6,18 @@
 #include <net/udp.h>
 #include_next <net/udp_tunnel.h>
 
-/* v7.2: setup_udp_tunnel_sock() takes struct sock instead of struct socket. */
+/* Post-v7.1.4 kernels take struct sock instead of struct socket in
+ * setup_udp_tunnel_sock().
+ */
 static inline void
 ovpn_setup_udp_tunnel_sock(struct net *net, struct sock *sk,
 			   struct udp_tunnel_sock_cfg *cfg)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 2, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 5)
 	setup_udp_tunnel_sock(net, sk->sk_socket, cfg);
 #else
 	setup_udp_tunnel_sock(net, sk, cfg);
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(7, 2, 0) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 5) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 189) && RHEL_RELEASE_CODE == 0
 	/* Pre-v5.4 only enables the IPv6 encap key for PF_INET6 sockets.
