@@ -3,6 +3,18 @@ name: virtme-ng arm64 build
 
 "on":
   workflow_dispatch:
+    inputs:
+      distros:
+        description: JSON array of distro targets to run.
+        required: false
+        type: string
+        default: >-
+          ["debian-10","debian-11","debian-12","debian-13",
+          "void-6.6","void-6.18",
+          "ubuntu-20.04","ubuntu-22.04","ubuntu-24.04",
+          "ubuntu-25.10","ubuntu-26.04","fedora-44",
+          "rhel-8","rhel-9","rhel-10","centos-stream-10",
+          "opensuse-leap-15.6","opensuse-tumbleweed"]
 
 permissions:
   contents: read
@@ -13,6 +25,7 @@ jobs:
     with:
       arch: arm64
       cache-prefix: ovpn-backports-arm64
+      distros: ${{ inputs.distros }}
       guest-script: ci/run-build.sh
       prepare-command: ./backports-ctl.sh get-ovpn -t
     secrets:

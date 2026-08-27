@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/main.c b/drivers/net/ovpn/main.c
-index 2e0420f..d6564ee 100644
+index 2e0420f..cef7d4e 100644
 --- a/drivers/net/ovpn/main.c
 +++ b/drivers/net/ovpn/main.c
 @@ -85,6 +85,12 @@ static int ovpn_net_init(struct net_device *dev)
@@ -72,11 +72,12 @@ index 2e0420f..d6564ee 100644
  	enum ovpn_mode mode = OVPN_MODE_P2P;
  
  	if (data && data[IFLA_OVPN_MODE]) {
-@@ -208,6 +223,28 @@ static int ovpn_newlink(struct net_device *dev,
+@@ -208,6 +223,29 @@ static int ovpn_newlink(struct net_device *dev,
  	return register_netdevice(dev);
  }
  
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0) || \
++	OVPN_RHEL_RELEASE_AT_LEAST(10, 3, 264)
 +static int ovpn_newlink(struct net_device *dev,
 +			struct rtnl_newlink_params *params,
 +			struct netlink_ext_ack *extack)
@@ -101,7 +102,7 @@ index 2e0420f..d6564ee 100644
  static void ovpn_dellink(struct net_device *dev, struct list_head *head)
  {
  	struct ovpn_priv *ovpn = netdev_priv(dev);
-@@ -229,10 +266,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
+@@ -229,10 +267,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
  
  static struct rtnl_link_ops ovpn_link_ops = {
  	.kind = "ovpn",
@@ -116,7 +117,7 @@ index 2e0420f..d6564ee 100644
  	.maxtype = IFLA_OVPN_MAX,
  	.newlink = ovpn_newlink,
  	.dellink = ovpn_dellink,
-@@ -277,3 +318,4 @@ module_exit(ovpn_cleanup);
+@@ -277,3 +319,4 @@ module_exit(ovpn_cleanup);
  MODULE_DESCRIPTION("OpenVPN data channel offload (ovpn)");
  MODULE_AUTHOR("Antonio Quartulli <antonio@openvpn.net>");
  MODULE_LICENSE("GPL");

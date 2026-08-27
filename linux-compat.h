@@ -26,6 +26,16 @@
 #ifndef RHEL_RELEASE_VERSION
 #define RHEL_RELEASE_VERSION(m, n) 1
 #endif
+#ifndef OVPN_RHEL_RELEASE_BUILD
+#define OVPN_RHEL_RELEASE_BUILD 0
+#endif
+
+#define OVPN_RHEL_RELEASE_AT_LEAST(major, minor, build) \
+	(RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(major, minor) || \
+	 (RHEL_RELEASE_CODE == RHEL_RELEASE_VERSION(major, minor) && \
+	  OVPN_RHEL_RELEASE_BUILD >= (build)))
+#define OVPN_RHEL_RELEASE_BEFORE(major, minor, build) \
+	(!OVPN_RHEL_RELEASE_AT_LEAST(major, minor, build))
 
 #ifndef SUSE_PRODUCT_CODE
 #define SUSE_PRODUCT_CODE 0

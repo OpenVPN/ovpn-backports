@@ -29,6 +29,20 @@ endif
 
 DEBUG ?= 0
 ccflags-y += -Werror
+
+# RHEL_RELEASE_CODE only identifies the RHEL major and minor release. During
+# development, incompatible backports may instead be identified by the
+# monotonically increasing build number in the quoted RHEL_RELEASE string.
+# Released kernels may append z-stream components (for example, "55.9.1"), so
+# we expose its first component as a number for generic version comparisons
+# rather than adding a Makefile header probe for each backported feature.
+OVPN_RHEL_RELEASE_BUILD := $(shell \
+	sed -n 's/^\#define RHEL_RELEASE "\([0-9][0-9]*\).*/\1/p' \
+		$(KERNEL_SRC)/include/generated/uapi/linux/version.h)
+ifneq ($(OVPN_RHEL_RELEASE_BUILD),)
+ccflags-y += -DOVPN_RHEL_RELEASE_BUILD=$(OVPN_RHEL_RELEASE_BUILD)
+endif
+
 ifeq ($(DEBUG),1)
     ccflags-y += -g -DDEBUG
 endif
