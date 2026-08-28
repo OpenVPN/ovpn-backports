@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+update_state="$repo_root/.backports-update"
+
+if [ -e "$update_state" ]; then
+	echo "An ovpn update is still in progress." >&2
+	echo "Run './backports-ctl.sh update-ovpn --continue' or '--abort' first." >&2
+	exit 1
+fi
+
+# only check scripts that are part of the commit
+mapfile -d '' -t staged_shell_files < <(
+	git diff --cached --name-only --diff-filter=ACMR -z -- '*.sh' '.githooks/*'
+)
+if [ "${#staged_shell_files[@]}" -eq "0" ]; then
+	exit 0
+fi
+
+if ! command -v shellcheck >/dev/null 2>&1; then
+	echo "shellcheck is required to commit shell script changes." >&2
+	exit 1
+fi
+
+# materialize the index in a temporary tree so unstaged changes are ignored
+staged_tree=$(mktemp -d "${TMPDIR:-/tmp}/ovpn-backports-hook.XXXXXX")
+trap 'rm -rf "$staged_tree"' EXIT
+
+for filepath in "${staged_shell_files[@]}"; do
+	mkdir -p "$staged_tree/$(dirname "$filepath")"
+	git show ":$filepath" > "$staged_tree/$filepath"
+done
+
+# backports-ctl.sh tells shellcheck to follow this sourced configuration
+if git cat-file -e :backports.conf 2>/dev/null; then
+	git show :backports.conf > "$staged_tree/backports.conf"
+fi
+
+(
+	cd "$staged_tree"
+	shellcheck -x -- "${staged_shell_files[@]}"
+)

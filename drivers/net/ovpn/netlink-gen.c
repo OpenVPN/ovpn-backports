@@ -27,6 +27,22 @@ static
 #if RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 4)
 const
 #endif
+struct netlink_range_validation ovpn_a_peer_keepalive_interval_range = {
+	.max	= 86400ULL,
+};
+
+static
+#if RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 4)
+const
+#endif
+struct netlink_range_validation ovpn_a_peer_keepalive_timeout_range = {
+	.max	= 86400ULL,
+};
+
+static
+#if RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(9, 4)
+const
+#endif
 struct netlink_range_validation ovpn_a_peer_tx_id_range = {
 	.max	= 16777215ULL,
 };
@@ -49,6 +65,20 @@ static int __maybe_unused ovpn_nla_validate_range(const struct nlattr *attr,
 	const u32 *value = nla_data(attr);
 
 	if (*value > 16777215) {
+		NL_SET_ERR_MSG_MOD(extack, "Value exceeds maximum");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int __maybe_unused
+ovpn_nla_validate_keepalive_range(const struct nlattr *attr,
+				  struct netlink_ext_ack *extack)
+{
+	const u32 *value = nla_data(attr);
+
+	if (*value > 86400) {
 		NL_SET_ERR_MSG_MOD(extack, "Value exceeds maximum");
 		return -EINVAL;
 	}
@@ -121,8 +151,13 @@ const struct nla_policy ovpn_peer_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 	[OVPN_A_PEER_LOCAL_IPV4] = { .type = NLA_BE32, },
 	[OVPN_A_PEER_LOCAL_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_LOCAL_PORT] = NLA_POLICY_MIN(NLA_BE16, 1),
-	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = { .type = NLA_U32, },
-	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = { .type = NLA_U32, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_interval_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_timeout_range),
+#else
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+#endif
 	[OVPN_A_PEER_DEL_REASON] = NLA_POLICY_MAX(NLA_U32, 4),
 	[OVPN_A_PEER_VPN_RX_BYTES] = { .type = NLA_UINT, },
 	[OVPN_A_PEER_VPN_TX_BYTES] = { .type = NLA_UINT, },
@@ -162,8 +197,13 @@ const struct nla_policy ovpn_peer_new_input_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 	[OVPN_A_PEER_VPN_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_LOCAL_IPV4] = { .type = NLA_BE32, },
 	[OVPN_A_PEER_LOCAL_IPV6] = NLA_POLICY_EXACT_LEN(16),
-	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = { .type = NLA_U32, },
-	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = { .type = NLA_U32, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_interval_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_timeout_range),
+#else
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_TX_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_tx_id_range),
 #else
@@ -185,8 +225,13 @@ const struct nla_policy ovpn_peer_set_input_nl_policy[OVPN_A_PEER_TX_ID + 1] = {
 	[OVPN_A_PEER_VPN_IPV6] = NLA_POLICY_EXACT_LEN(16),
 	[OVPN_A_PEER_LOCAL_IPV4] = { .type = NLA_BE32, },
 	[OVPN_A_PEER_LOCAL_IPV6] = NLA_POLICY_EXACT_LEN(16),
-	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = { .type = NLA_U32, },
-	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = { .type = NLA_U32, },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_interval_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_keepalive_timeout_range),
+#else
+	[OVPN_A_PEER_KEEPALIVE_INTERVAL] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+	[OVPN_A_PEER_KEEPALIVE_TIMEOUT] = NLA_POLICY_VALIDATE_FN(NLA_U32, ovpn_nla_validate_keepalive_range),
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0) || RHEL_RELEASE_CODE != 0
 	[OVPN_A_PEER_TX_ID] = NLA_POLICY_FULL_RANGE(NLA_U32, &ovpn_a_peer_tx_id_range),
 #else

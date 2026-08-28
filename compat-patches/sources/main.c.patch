@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ovpn/main.c b/drivers/net/ovpn/main.c
-index 2e0420f..cef7d4e 100644
+index 168cfe9..87856aa 100644
 --- a/drivers/net/ovpn/main.c
 +++ b/drivers/net/ovpn/main.c
-@@ -85,6 +85,12 @@ static int ovpn_net_init(struct net_device *dev)
+@@ -71,6 +71,12 @@ static int ovpn_net_init(struct net_device *dev)
  		return err;
  	}
  
@@ -15,18 +15,30 @@ index 2e0420f..cef7d4e 100644
  	return 0;
  }
  
-@@ -93,22 +99,30 @@ static void ovpn_net_uninit(struct net_device *dev)
+@@ -78,9 +84,20 @@ static void ovpn_net_uninit(struct net_device *dev)
+ {
  	struct ovpn_priv *ovpn = netdev_priv(dev);
  
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
++	/* cancel does not prevent a racing queue attempt after it returns */
++	spin_lock_bh(&ovpn->keepalive_work_lock);
++	ovpn->keepalive_work_disabled = true;
++	spin_unlock_bh(&ovpn->keepalive_work_lock);
++	cancel_delayed_work_sync(&ovpn->keepalive_work);
++#else
+ 	disable_delayed_work_sync(&ovpn->keepalive_work);
++#endif
+ 	ovpn_peers_free(ovpn, NULL, OVPN_DEL_PEER_REASON_TEARDOWN);
  	gro_cells_destroy(&ovpn->gro_cells);
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
 +	free_percpu(dev->tstats);
 +#endif
  }
  
- static const struct net_device_ops ovpn_netdev_ops = {
- 	.ndo_init		= ovpn_net_init,
+ static int ovpn_net_open(struct net_device *dev)
+@@ -116,16 +133,21 @@ static const struct net_device_ops ovpn_netdev_ops = {
  	.ndo_uninit		= ovpn_net_uninit,
+ 	.ndo_open		= ovpn_net_open,
  	.ndo_start_xmit		= ovpn_net_xmit,
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
 +	.ndo_get_stats64	= dev_get_tstats64,
@@ -46,7 +58,7 @@ index 2e0420f..cef7d4e 100644
  
  /**
   * ovpn_dev_is_valid - check if the netdevice is of type 'ovpn'
-@@ -141,7 +155,11 @@ static void ovpn_setup(struct net_device *dev)
+@@ -158,7 +180,11 @@ static void ovpn_setup(struct net_device *dev)
  
  	dev->needs_free_netdev = true;
  
@@ -58,7 +70,7 @@ index 2e0420f..cef7d4e 100644
  
  	dev->ethtool_ops = &ovpn_ethtool_ops;
  	dev->netdev_ops = &ovpn_netdev_ops;
-@@ -174,12 +192,9 @@ static void ovpn_setup(struct net_device *dev)
+@@ -191,12 +217,9 @@ static void ovpn_setup(struct net_device *dev)
  	SET_NETDEV_DEVTYPE(dev, &ovpn_type);
  }
  
@@ -70,10 +82,21 @@ index 2e0420f..cef7d4e 100644
  	struct ovpn_priv *ovpn = netdev_priv(dev);
 -	struct nlattr **data = params->data;
  	enum ovpn_mode mode = OVPN_MODE_P2P;
+ 	int ret;
  
- 	if (data && data[IFLA_OVPN_MODE]) {
-@@ -208,6 +223,29 @@ static int ovpn_newlink(struct net_device *dev,
- 	return register_netdevice(dev);
+@@ -209,6 +232,10 @@ static int ovpn_newlink(struct net_device *dev,
+ 	ovpn->mode = mode;
+ 	spin_lock_init(&ovpn->lock);
+ 	INIT_DELAYED_WORK(&ovpn->keepalive_work, ovpn_peer_keepalive_work);
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
++	spin_lock_init(&ovpn->keepalive_work_lock);
++	ovpn->keepalive_work_disabled = false;
++#endif
+ 
+ 	/* Set carrier explicitly after registration, this way state is
+ 	 * clearly defined.
+@@ -230,6 +257,29 @@ static int ovpn_newlink(struct net_device *dev,
+ 	return 0;
  }
  
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0) || \
@@ -99,10 +122,10 @@ index 2e0420f..cef7d4e 100644
 +}
 +#endif
 +
- static void ovpn_dellink(struct net_device *dev, struct list_head *head)
+ static size_t ovpn_get_size(const struct net_device *dev)
  {
- 	struct ovpn_priv *ovpn = netdev_priv(dev);
-@@ -229,10 +267,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
+ 	/* IFLA_OVPN_MODE */
+@@ -248,10 +298,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
  
  static struct rtnl_link_ops ovpn_link_ops = {
  	.kind = "ovpn",
@@ -116,8 +139,8 @@ index 2e0420f..cef7d4e 100644
 +#endif
  	.maxtype = IFLA_OVPN_MAX,
  	.newlink = ovpn_newlink,
- 	.dellink = ovpn_dellink,
-@@ -277,3 +319,4 @@ module_exit(ovpn_cleanup);
+ 	.get_size = ovpn_get_size,
+@@ -297,3 +351,4 @@ module_exit(ovpn_cleanup);
  MODULE_DESCRIPTION("OpenVPN data channel offload (ovpn)");
  MODULE_AUTHOR("Antonio Quartulli <antonio@openvpn.net>");
  MODULE_LICENSE("GPL");

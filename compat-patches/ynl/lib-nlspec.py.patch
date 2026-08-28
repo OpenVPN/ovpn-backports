@@ -1,0 +1,26 @@
+diff --git a/tools/net/ynl/pyynl/lib/nlspec.py b/tools/net/ynl/pyynl/lib/nlspec.py
+index b4ec598..1a4b2e4 100644
+--- a/tools/net/ynl/pyynl/lib/nlspec.py
++++ b/tools/net/ynl/pyynl/lib/nlspec.py
+@@ -229,7 +229,8 @@ class SpecAttrSet(SpecElement):
+             real_set = family.attr_sets[self.subset_of]
+             for elem in self.yaml['attributes']:
+                 real_attr = real_set[elem['name']]
+-                combined_elem = real_attr.yaml | elem
++                combined_elem = real_attr.yaml.copy()
++                combined_elem.update(elem)
+                 attr = self.new_attr(combined_elem, real_attr.value)
+ 
+                 self.attrs[attr.name] = attr
+@@ -442,8 +443,10 @@ class SpecFamily(SpecElement):
+     jsonschema = None
+ 
+     try:
++        # older libyaml releases reject the YAML 1.2 directive used by schemas
++        pyyaml.load('%YAML 1.2\n---\n', Loader=pyyaml.CSafeLoader)
+         _yaml_loader = pyyaml.CSafeLoader
+-    except AttributeError:
++    except (AttributeError, pyyaml.YAMLError):
+         _yaml_loader = pyyaml.SafeLoader
+ 
+     def __init__(self, spec_path=None, schema_path=None, exclude_ops=None,

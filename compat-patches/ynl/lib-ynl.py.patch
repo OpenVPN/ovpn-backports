@@ -1,0 +1,25 @@
+diff --git a/tools/net/ynl/pyynl/lib/ynl.py b/tools/net/ynl/pyynl/lib/ynl.py
+index 8682bf5..b46d9d2 100644
+--- a/tools/net/ynl/pyynl/lib/ynl.py
++++ b/tools/net/ynl/pyynl/lib/ynl.py
+@@ -12,6 +12,7 @@ An implementation of the genetlink and raw netlink protocols.
+ 
+ from collections import namedtuple
+ from enum import Enum
++import errno
+ import functools
+ import os
+ import random
+@@ -734,7 +735,11 @@ class YnlFamily(SpecFamily):
+         self.sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, self.nlproto.proto_num)
+         self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_CAP_ACK, 1)
+         self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_EXT_ACK, 1)
+-        self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_GET_STRICT_CHK, 1)
++        try:
++            self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_GET_STRICT_CHK, 1)
++        except OSError as err:
++            if err.errno != errno.ENOPROTOOPT:
++                raise
+ 
+         self.async_msg_ids = set()
+         self.async_msg_queue = queue.Queue()

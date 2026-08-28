@@ -3,6 +3,9 @@
 .clangd
 .clang-format
 .version
+.backports-update
+.backports.conf.*
+.compat-patches.*
 .Module.symvers.cmd
 .modules.order.cmd
 .module-common.o

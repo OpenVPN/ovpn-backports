@@ -35,24 +35,10 @@ static void ovpn_priv_free(struct net_device *net)
 
 static int ovpn_mp_alloc(struct ovpn_priv *ovpn)
 {
-	struct in_device *dev_v4;
 	int i;
 
 	if (ovpn->mode != OVPN_MODE_MP)
 		return 0;
-
-	dev_v4 = __in_dev_get_rtnl(ovpn->dev);
-	if (dev_v4) {
-		/* disable redirects as Linux gets confused by ovpn
-		 * handling same-LAN routing.
-		 * This happens because a multipeer interface is used as
-		 * relay point between hosts in the same subnet, while
-		 * in a classic LAN this would not be needed because the
-		 * two hosts would be able to talk directly.
-		 */
-		IN_DEV_CONF_SET(dev_v4, SEND_REDIRECTS, false);
-		IPV4_DEVCONF_ALL(dev_net(ovpn->dev), SEND_REDIRECTS) = false;
-	}
 
 	/* the peer container is fairly large, therefore we allocate it only in
 	 * MP mode
@@ -98,15 +84,54 @@ static void ovpn_net_uninit(struct net_device *dev)
 {
 	struct ovpn_priv *ovpn = netdev_priv(dev);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
+	/* cancel does not prevent a racing queue attempt after it returns */
+	spin_lock_bh(&ovpn->keepalive_work_lock);
+	ovpn->keepalive_work_disabled = true;
+	spin_unlock_bh(&ovpn->keepalive_work_lock);
+	cancel_delayed_work_sync(&ovpn->keepalive_work);
+#else
+	disable_delayed_work_sync(&ovpn->keepalive_work);
+#endif
+	ovpn_peers_free(ovpn, NULL, OVPN_DEL_PEER_REASON_TEARDOWN);
 	gro_cells_destroy(&ovpn->gro_cells);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
 	free_percpu(dev->tstats);
 #endif
 }
 
+static int ovpn_net_open(struct net_device *dev)
+{
+	struct ovpn_priv *ovpn = netdev_priv(dev);
+	struct in_device *dev_v4;
+
+	/* the IPv4 in_device (and thus its config) is recreated whenever the
+	 * interface is moved to a new netns, so redirects must be disabled on
+	 * every bring-up rather than once at creation time, otherwise the
+	 * setting is silently lost after such a move
+	 */
+	if (ovpn->mode == OVPN_MODE_MP) {
+		dev_v4 = __in_dev_get_rtnl(dev);
+		if (dev_v4) {
+			/* disable redirects as Linux gets confused by ovpn
+			 * handling same-LAN routing.
+			 * This happens because a multipeer interface is used as
+			 * relay point between hosts in the same subnet, while
+			 * in a classic LAN this would not be needed because the
+			 * two hosts would be able to talk directly.
+			 */
+			IN_DEV_CONF_SET(dev_v4, SEND_REDIRECTS, false);
+			IPV4_DEVCONF_ALL(dev_net(dev), SEND_REDIRECTS) = false;
+		}
+	}
+
+	return 0;
+}
+
 static const struct net_device_ops ovpn_netdev_ops = {
 	.ndo_init		= ovpn_net_init,
 	.ndo_uninit		= ovpn_net_uninit,
+	.ndo_open		= ovpn_net_open,
 	.ndo_start_xmit		= ovpn_net_xmit,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
 	.ndo_get_stats64	= dev_get_tstats64,
@@ -196,6 +221,7 @@ static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
 {
 	struct ovpn_priv *ovpn = netdev_priv(dev);
 	enum ovpn_mode mode = OVPN_MODE_P2P;
+	int ret;
 
 	if (data && data[IFLA_OVPN_MODE]) {
 		mode = nla_get_u8(data[IFLA_OVPN_MODE]);
@@ -206,6 +232,10 @@ static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
 	ovpn->mode = mode;
 	spin_lock_init(&ovpn->lock);
 	INIT_DELAYED_WORK(&ovpn->keepalive_work, ovpn_peer_keepalive_work);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
+	spin_lock_init(&ovpn->keepalive_work_lock);
+	ovpn->keepalive_work_disabled = false;
+#endif
 
 	/* Set carrier explicitly after registration, this way state is
 	 * clearly defined.
@@ -220,7 +250,11 @@ static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
 	else
 		netif_carrier_off(dev);
 
-	return register_netdevice(dev);
+	ret = register_netdevice(dev);
+	if (ret < 0)
+		return ret;
+
+	return 0;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0) || \
@@ -246,13 +280,10 @@ static int ovpn_newlink(struct net *src_net, struct net_device *dev,
 }
 #endif
 
-static void ovpn_dellink(struct net_device *dev, struct list_head *head)
+static size_t ovpn_get_size(const struct net_device *dev)
 {
-	struct ovpn_priv *ovpn = netdev_priv(dev);
-
-	cancel_delayed_work_sync(&ovpn->keepalive_work);
-	ovpn_peers_free(ovpn, NULL, OVPN_DEL_PEER_REASON_TEARDOWN);
-	unregister_netdevice_queue(dev, head);
+	/* IFLA_OVPN_MODE */
+	return nla_total_size(sizeof(u8));
 }
 
 static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
@@ -277,14 +308,17 @@ static struct rtnl_link_ops ovpn_link_ops = {
 #endif
 	.maxtype = IFLA_OVPN_MAX,
 	.newlink = ovpn_newlink,
-	.dellink = ovpn_dellink,
+	.get_size = ovpn_get_size,
 	.fill_info = ovpn_fill_info,
 };
 
 static int __init ovpn_init(void)
 {
-	int err = rtnl_link_register(&ovpn_link_ops);
+	int err;
 
+	ovpn_tcp_init();
+
+	err = rtnl_link_register(&ovpn_link_ops);
 	if (err) {
 		pr_err("ovpn: can't register rtnl link ops: %d\n", err);
 		return err;
@@ -295,8 +329,6 @@ static int __init ovpn_init(void)
 		pr_err("ovpn: can't register netlink family: %d\n", err);
 		goto unreg_rtnl;
 	}
-
-	ovpn_tcp_init();
 
 	return 0;
 

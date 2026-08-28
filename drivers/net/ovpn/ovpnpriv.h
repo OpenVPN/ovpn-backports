@@ -41,6 +41,8 @@ struct ovpn_peer_collection {
  * @peer: in P2P mode, this is the only remote peer
  * @gro_cells: pointer to the Generic Receive Offload cell
  * @keepalive_work: struct used to schedule keepalive periodic job
+ * @keepalive_work_lock: protects keepalive work from being queued at teardown
+ * @keepalive_work_disabled: whether keepalive work has been disabled
  */
 struct ovpn_priv {
 	struct net_device *dev;
@@ -50,6 +52,10 @@ struct ovpn_priv {
 	struct ovpn_peer __rcu *peer;
 	struct gro_cells gro_cells;
 	struct delayed_work keepalive_work;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
+	spinlock_t keepalive_work_lock;
+	bool keepalive_work_disabled;
+#endif
 };
 
 #endif /* _NET_OVPN_OVPNSTRUCT_H_ */

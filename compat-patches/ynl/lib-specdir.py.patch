@@ -1,0 +1,11 @@
+diff --git a/tools/net/ynl/pyynl/lib/specdir.py b/tools/net/ynl/pyynl/lib/specdir.py
+index fcea9b9..dbf4b9f 100644
+--- a/tools/net/ynl/pyynl/lib/specdir.py
++++ b/tools/net/ynl/pyynl/lib/specdir.py
+@@ -47,5 +47,5 @@ def find_spec(family):
+ 
+ def list_families():
+     """ Return the sorted names of all families with an installed spec. """
+-    return sorted(f.removesuffix('.yaml')
++    return sorted(f[:-5]
+                   for f in os.listdir(spec_dir()) if f.endswith('.yaml'))
