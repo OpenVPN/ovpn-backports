@@ -4,6 +4,11 @@
 #include <linux/version.h>
 #include_next <linux/workqueue.h>
 
+#ifdef OVPN_NO_WQ_PERCPU
+/* Before WQ_PERCPU, CPU-bound workqueues were the default. */
+#define WQ_PERCPU 0
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
 
 #define system_percpu_wq system_wq

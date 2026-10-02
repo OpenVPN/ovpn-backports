@@ -30,6 +30,18 @@ endif
 DEBUG ?= 0
 ccflags-y += -Werror
 
+# WQ_PERCPU is an enum member, so #ifndef cannot detect its availability.
+# Stable and distribution kernels also backport it to older baselines.
+# Inspect the source header during Kbuild to support split header packages.
+ifneq ($(srctree),)
+OVPN_HAVE_WQ_PERCPU := $(shell \
+	grep -qE '^[[:space:]]*WQ_PERCPU[[:space:]]*=' \
+		$(srctree)/include/linux/workqueue.h && echo 1)
+ifeq ($(OVPN_HAVE_WQ_PERCPU),)
+ccflags-y += -DOVPN_NO_WQ_PERCPU
+endif
+endif
+
 # RHEL_RELEASE_CODE only identifies the RHEL major and minor release. During
 # development, incompatible backports may instead be identified by the
 # monotonically increasing build number in the quoted RHEL_RELEASE string.
