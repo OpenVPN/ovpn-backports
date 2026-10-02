@@ -43,6 +43,26 @@ ifneq ($(OVPN_RHEL_RELEASE_BUILD),)
 ccflags-y += -DOVPN_RHEL_RELEASE_BUILD=$(OVPN_RHEL_RELEASE_BUILD)
 endif
 
+# Ubuntu backports can change APIs without changing the upstream version.
+# ABI numbers are specific to a kernel series and flavor, so expose both
+# values from the target headers rather than the running kernel.
+ifneq ("$(wildcard $(KERNEL_SRC)/include/generated/utsrelease.h)","")
+OVPN_UBUNTU_RELEASE_ABI := $(shell \
+	sed -n 's/^\#define UTS_UBUNTU_RELEASE_ABI \([0-9][0-9]*\)$$/\1/p' \
+		$(KERNEL_SRC)/include/generated/utsrelease.h)
+ifneq ($(OVPN_UBUNTU_RELEASE_ABI),)
+ccflags-y += -DOVPN_UBUNTU_RELEASE_ABI=$(OVPN_UBUNTU_RELEASE_ABI)
+OVPN_UBUNTU_FLAVOR := $(shell \
+	sed -n 's/^\#define UTS_RELEASE "[^"]*-[0-9][0-9]*-\([^"]*\)"$$/\1/p' \
+		$(KERNEL_SRC)/include/generated/utsrelease.h)
+ifeq ($(OVPN_UBUNTU_FLAVOR),generic)
+ccflags-y += -DOVPN_UBUNTU_FLAVOR=OVPN_UBUNTU_FLAVOR_GENERIC
+else ifeq ($(OVPN_UBUNTU_FLAVOR),aws)
+ccflags-y += -DOVPN_UBUNTU_FLAVOR=OVPN_UBUNTU_FLAVOR_AWS
+endif
+endif
+endif
+
 ifeq ($(DEBUG),1)
     ccflags-y += -g -DDEBUG
 endif

@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/peer.c b/drivers/net/ovpn/peer.c
-index b0519f9..ad98146 100644
+index c95656c..8677bd6 100644
 --- a/drivers/net/ovpn/peer.c
 +++ b/drivers/net/ovpn/peer.c
 @@ -37,6 +37,17 @@ static void unlock_ovpn(struct ovpn_priv *ovpn,
@@ -12,7 +12,7 @@ index b0519f9..ad98146 100644
 +{
 +	spin_lock_bh(&ovpn->keepalive_work_lock);
 +	if (!ovpn->keepalive_work_disabled)
-+		mod_delayed_work(system_percpu_wq, &ovpn->keepalive_work, delay);
++		mod_delayed_work(ovpn_wq, &ovpn->keepalive_work, delay);
 +	spin_unlock_bh(&ovpn->keepalive_work_lock);
 +}
 +#endif
@@ -27,7 +27,7 @@ index b0519f9..ad98146 100644
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
 +	ovpn_keepalive_work_schedule(peer->ovpn, 0);
 +#else
- 	mod_delayed_work(system_percpu_wq, &peer->ovpn->keepalive_work, 0);
+ 	mod_delayed_work(ovpn_wq, &peer->ovpn->keepalive_work, 0);
 +#endif
  }
  
@@ -66,8 +66,8 @@ index b0519f9..ad98146 100644
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
 +		ovpn_keepalive_work_schedule(ovpn, (next_run - now) * HZ);
 +#else
- 		schedule_delayed_work(&ovpn->keepalive_work,
- 				      (next_run - now) * HZ);
+ 		queue_delayed_work(ovpn_wq, &ovpn->keepalive_work,
+ 				   (next_run - now) * HZ);
 +#endif
  	}
  	unlock_ovpn(ovpn, &release_list);

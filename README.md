@@ -2,22 +2,6 @@
 
 The ovpn kernel module is part of the Linux kernel starting from version 6.16. It enhances OpenVPN performance by offloading data channel management to the kernel. This repository contains out-of-tree backports for the ovpn kernel module, enabling its use with older kernel versions.
 
-## Branch structure
-
-The repository consists of two main branches:
-- `main`: tracks the latest code from the `net-next` tree.
-- `net`: tracks the latest code from the `net` tree.
-
-Additionally, there are two branches dedicated to development and testing, which may contain code not yet part of any official kernel tree:
-- `development`: code built on top of the `net-next` tree.
-- `development-net`: code built on top of the `net` tree.
-
-Finally, there are four corresponding branches for pre-patched sources:
-- `sources`: pre-patched sources for `main`.
-- `net-sources`: pre-patched sources for `net`.
-- `development-sources`: pre-patched sources for `development`.
-- `development-net-sources`: pre-patched sources for `development-net`.
-
 ## Installation
 
 ### Packages
@@ -28,13 +12,13 @@ You can download packages from the [OpenVPN OBS repository](https://download.ope
 
 #### Tags
 
-A pre-patched version of the source files is available for download in the [tags](https://github.com/OpenVPN/ovpn-backports/tags) section of this repository. Generally, you’ll want to download the packages containing either 'main' or 'net' in the name, as these track the 'net-next' and 'net' trees, respectively (see [branch structure](#branch-structure)).
+A pre-patched version of the source files is available for download in the [tags](https://github.com/OpenVPN/ovpn-backports/tags) section of this repository. Generally, you’ll want to download the packages containing either 'main' or 'net' in the name, as these track the 'net-next' and 'net' trees, respectively.
 
 After downloading and ensuring the kernel headers are installed, simply run `make && make install` to build and install the module.
 
 #### Sources branch
 
-Another way to download the pre-patched sources is to clone the repository and check out a branch containing `sources` in the name (see [branch structure](#branch-structure)). Then, after ensuring the kernel headers are installed, simply run `make && make install` to build and install the module.
+Another way to download the pre-patched sources is to clone the repository and check out a branch containing `sources` in the name. Then, after ensuring the kernel headers are installed, simply run `make && make install` to build and install the module.
 
 ### Building from source
 

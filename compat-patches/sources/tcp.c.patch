@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/tcp.c b/drivers/net/ovpn/tcp.c
-index 0af1405..b37c310 100644
+index 8fe8a8e..fa57503 100644
 --- a/drivers/net/ovpn/tcp.c
 +++ b/drivers/net/ovpn/tcp.c
 @@ -10,6 +10,7 @@
@@ -61,7 +61,7 @@ index 0af1405..b37c310 100644
  	if (!skb) {
  		if (err == -EAGAIN && sk->sk_shutdown & RCV_SHUTDOWN) {
  			ret = 0;
-@@ -354,7 +373,7 @@ void ovpn_tcp_send_skb(struct ovpn_peer *peer, struct sock *sk,
+@@ -353,7 +372,7 @@ void ovpn_tcp_send_skb(struct ovpn_peer *peer, struct sock *sk,
  	spin_lock_nested(&sk->sk_lock.slock, OVPN_TCP_DEPTH_NESTING);
  	if (sock_owned_by_user(sk)) {
  		if (skb_queue_len(&peer->tcp.out_queue) >=
@@ -70,7 +70,7 @@ index 0af1405..b37c310 100644
  			ovpn_dev_dstats_tx_dropped(peer->ovpn->dev);
  			kfree_skb(skb);
  			goto unlock;
-@@ -559,13 +578,21 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
+@@ -558,13 +577,21 @@ int ovpn_tcp_socket_attach(struct ovpn_socket *ovpn_sock,
  		ovpn_sock->sk->sk_prot = &ovpn_tcp_prot;
  		ovpn_sock->sk->sk_socket->ops = &ovpn_tcp_ops;
  	} else {
@@ -93,7 +93,7 @@ index 0af1405..b37c310 100644
  
  	/* enqueue the RX worker */
  	strp_check_rcv(&peer->tcp.strp);
-@@ -655,8 +682,10 @@ void __init ovpn_tcp_init(void)
+@@ -654,8 +681,10 @@ void __init ovpn_tcp_init(void)
  	ovpn_tcp_build_protos(&ovpn_tcp_prot, &ovpn_tcp_ops, &tcp_prot,
  			      &inet_stream_ops);
  
