@@ -71,9 +71,11 @@ ifeq ($(OVPN_UBUNTU_FLAVOR),generic)
 ccflags-y += -DOVPN_UBUNTU_FLAVOR=OVPN_UBUNTU_FLAVOR_GENERIC
 else ifeq ($(OVPN_UBUNTU_FLAVOR),aws)
 ccflags-y += -DOVPN_UBUNTU_FLAVOR=OVPN_UBUNTU_FLAVOR_AWS
-endif
-endif
-endif
+else ifeq ($(OVPN_UBUNTU_FLAVOR),azure)
+ccflags-y += -DOVPN_UBUNTU_FLAVOR=OVPN_UBUNTU_FLAVOR_AZURE
+endif # OVPN_UBUNTU_FLAVOR
+endif # OVPN_UBUNTU_RELEASE_ABI
+endif # generated/utsrelease.h exists
 
 ifeq ($(DEBUG),1)
     ccflags-y += -g -DDEBUG

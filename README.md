@@ -91,7 +91,7 @@ make run_tests
 ### Kernel versions
 
 The module is compiled and tested on the following distributions:
- - Ubuntu 20.04, 22.04, 24.04, 25.10, 26.04
+ - Ubuntu 20.04, 22.04, 24.04, 25.10, 26.04 (including the AWS and Azure kernels on 26.04)
  - Debian 10, 11, 12, 13
  - Fedora 44
  - RHEL 8, 9, 10
