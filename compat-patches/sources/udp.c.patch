@@ -1,5 +1,4 @@
 diff --git a/drivers/net/ovpn/udp.c b/drivers/net/ovpn/udp.c
-index 7f69e88..dd3d83c 100644
 --- a/drivers/net/ovpn/udp.c
 +++ b/drivers/net/ovpn/udp.c
 @@ -13,6 +13,7 @@
@@ -10,8 +9,8 @@ index 7f69e88..dd3d83c 100644
  #include <net/route.h>
  #include <net/transp_v6.h>
  #include <net/udp.h>
-@@ -196,9 +197,9 @@ static int ovpn_udp4_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
- 	dst_cache_set_ip4(cache, &rt->dst, fl.saddr);
+@@ -288,9 +289,9 @@
+ 	spin_unlock_bh(&peer->lock);
  
  transmit:
 -	udp_tunnel_xmit_skb(rt, sk, skb, fl.saddr, fl.daddr, 0,
@@ -23,8 +22,8 @@ index 7f69e88..dd3d83c 100644
  	ret = 0;
  err:
  	local_bh_enable();
-@@ -250,7 +251,7 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
- 		dst_cache_reset(cache);
+@@ -344,7 +345,7 @@
+ 		reset_local = true;
  	}
  
 -	dst = ip6_dst_lookup_flow(sock_net(sk), sk, &fl, NULL);
@@ -32,7 +31,7 @@ index 7f69e88..dd3d83c 100644
  	if (IS_ERR(dst)) {
  		ret = PTR_ERR(dst);
  		net_dbg_ratelimited("%s: no route to host %pISpc: %d\n",
-@@ -271,9 +272,9 @@ static int ovpn_udp6_output(struct ovpn_peer *peer, struct ovpn_bind *bind,
+@@ -388,9 +389,9 @@
  	 * udp_tunnel_xmit_skb()
  	 */
  	skb->ignore_df = 1;
@@ -45,7 +44,7 @@ index 7f69e88..dd3d83c 100644
  	ret = 0;
  err:
  	local_bh_enable();
-@@ -399,7 +400,8 @@ int ovpn_udp_socket_attach(struct ovpn_socket *ovpn_sock, struct socket *sock,
+@@ -524,7 +525,8 @@
  	if (!old_data) {
  		/* socket is currently unused - we can take it */
  		rcu_read_unlock();
@@ -55,7 +54,7 @@ index 7f69e88..dd3d83c 100644
  		return 0;
  	}
  
-@@ -436,12 +438,12 @@ void ovpn_udp_socket_detach(struct ovpn_socket *ovpn_sock)
+@@ -561,12 +563,12 @@
  	struct sock *sk = ovpn_sock->sk;
  
  	/* Re-enable multicast loopback */

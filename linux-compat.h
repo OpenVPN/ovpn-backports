@@ -145,6 +145,7 @@ enum ovpn_mode {
 enum {
 	IFLA_OVPN_UNSPEC,
 	IFLA_OVPN_MODE,
+	IFLA_OVPN_COLLECT_METADATA,
 	__IFLA_OVPN_MAX,
 };
 

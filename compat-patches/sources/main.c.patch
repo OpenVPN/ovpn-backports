@@ -36,7 +36,7 @@ index 0708249..c898d54 100644
  }
  
  static int ovpn_net_open(struct net_device *dev)
-@@ -120,16 +137,21 @@ static const struct net_device_ops ovpn_netdev_ops = {
+@@ -120,17 +137,22 @@ static const struct net_device_ops ovpn_netdev_ops = {
  	.ndo_uninit		= ovpn_net_uninit,
  	.ndo_open		= ovpn_net_open,
  	.ndo_start_xmit		= ovpn_net_xmit,
@@ -53,6 +53,7 @@ index 0708249..c898d54 100644
  static const struct nla_policy ovpn_policy[IFLA_OVPN_MAX + 1] = {
  	[IFLA_OVPN_MODE] = NLA_POLICY_RANGE(NLA_U8, OVPN_MODE_P2P,
  					    OVPN_MODE_MP),
+ 	[IFLA_OVPN_COLLECT_METADATA] = { .type = NLA_FLAG },
  };
 +#endif
  
@@ -70,14 +71,15 @@ index 0708249..c898d54 100644
  
  	dev->ethtool_ops = &ovpn_ethtool_ops;
  	dev->netdev_ops = &ovpn_netdev_ops;
-@@ -195,12 +221,9 @@ static void ovpn_setup(struct net_device *dev)
+@@ -195,12 +221,10 @@ static void ovpn_setup(struct net_device *dev)
  	SET_NETDEV_DEVTYPE(dev, &ovpn_type);
  }
  
 -static int ovpn_newlink(struct net_device *dev,
 -			struct rtnl_newlink_params *params,
 -			struct netlink_ext_ack *extack)
-+static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data)
++static int ovpn_newlink_common(struct net_device *dev, struct nlattr **data,
++			       struct netlink_ext_ack *extack)
  {
  	struct ovpn_priv *ovpn = netdev_priv(dev);
 -	struct nlattr **data = params->data;
@@ -95,7 +97,7 @@ index 0708249..c898d54 100644
  
  	/* Set carrier explicitly after registration, this way state is
  	 * clearly defined.
-@@ -234,6 +261,29 @@ static int ovpn_newlink(struct net_device *dev,
+@@ -234,6 +262,26 @@ static int ovpn_newlink(struct net_device *dev,
  	return 0;
  }
  
@@ -105,9 +107,7 @@ index 0708249..c898d54 100644
 +			struct rtnl_newlink_params *params,
 +			struct netlink_ext_ack *extack)
 +{
-+	(void)extack;
-+
-+	return ovpn_newlink_common(dev, params->data);
++	return ovpn_newlink_common(dev, params->data, extack);
 +}
 +#else
 +static int ovpn_newlink(struct net *src_net, struct net_device *dev,
@@ -116,9 +116,8 @@ index 0708249..c898d54 100644
 +{
 +	(void)src_net;
 +	(void)tb;
-+	(void)extack;
 +
-+	return ovpn_newlink_common(dev, data);
++	return ovpn_newlink_common(dev, data, extack);
 +}
 +#endif
 +
