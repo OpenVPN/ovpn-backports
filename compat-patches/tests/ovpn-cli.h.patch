@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..e48449e
 --- /dev/null
 +++ b/tools/testing/selftests/net/ovpn/ovpn-cli.h
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,28 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +#ifndef _OVPN_SELFTEST_OVPN_CLI_H_
 +#define _OVPN_SELFTEST_OVPN_CLI_H_
@@ -20,9 +20,15 @@ index 0000000..e48449e
 +enum {
 +	IFLA_OVPN_UNSPEC,
 +	IFLA_OVPN_MODE,
++	IFLA_OVPN_COLLECT_METADATA,
 +	__IFLA_OVPN_MAX,
 +};
 +
 +#define IFLA_OVPN_MAX (__IFLA_OVPN_MAX - 1)
++#define IFLA_OVPN_COLLECT_METADATA IFLA_OVPN_COLLECT_METADATA
 +#endif /* IFLA_OVPN_MAX */
++
++#ifndef IFLA_OVPN_COLLECT_METADATA
++#define IFLA_OVPN_COLLECT_METADATA (IFLA_OVPN_MODE + 1)
++#endif /* IFLA_OVPN_COLLECT_METADATA */
 +#endif /* _OVPN_SELFTEST_OVPN_CLI_H_ */
