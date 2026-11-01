@@ -161,6 +161,13 @@ enum {
 #define IFLA_OVPN_MAX IFLA_OVPN_COLLECT_METADATA
 #endif /* IFLA_OVPN_COLLECT_METADATA */
 
+/* tunnel flags became a bitmap in 6.10 */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0)
+#define ovpn_tun_info_set_key(info) ((info)->key.tun_flags |= TUNNEL_KEY)
+#else
+#define ovpn_tun_info_set_key(info) __set_bit(IP_TUNNEL_KEY_BIT, (info)->key.tun_flags)
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0) */
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0) && \
 	LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)) || \
 	OVPN_SLE_VERSION_AT_LEAST(15, 6, 0)

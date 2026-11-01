@@ -1,0 +1,12 @@
+diff --git a/drivers/net/ovpn/io.c b/drivers/net/ovpn/io.c
+--- a/drivers/net/ovpn/io.c
++++ b/drivers/net/ovpn/io.c
+@@ -76,7 +76,7 @@
+ 
+ 	info = &tun_dst->u.tun_info;
+ 	info->key.tun_id = cpu_to_be64(peer->id);
+-	__set_bit(IP_TUNNEL_KEY_BIT, info->key.tun_flags);
++	ovpn_tun_info_set_key(info);
+ 
+ 	return tun_dst;
+ }
