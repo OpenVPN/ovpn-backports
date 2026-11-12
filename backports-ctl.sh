@@ -29,7 +29,9 @@ clean_ovpn_selftests() {
 		"$PWD/tools/testing/selftests/build_report.mk" \
 		"$PWD/tools/net/ynl/pyynl" \
 		"$PWD/Documentation/netlink/specs/ovpn.yaml" \
+		"$PWD/Documentation/netlink/specs/rt-link.yaml" \
 		"$PWD/Documentation/netlink/genetlink.yaml" \
+		"$PWD/Documentation/netlink/netlink-raw.yaml" \
 		"$PWD/scripts/subarch.include"
 }
 
@@ -78,6 +80,11 @@ import_ovpn_selftests() {
 		"$PWD/Documentation/netlink/specs/ovpn.yaml"
 	cp "$source_tree/Documentation/netlink/genetlink.yaml" \
 		"$PWD/Documentation/netlink/genetlink.yaml"
+	# rt-link family, used by the collect metadata mode tests
+	cp "$source_tree/Documentation/netlink/specs/rt-link.yaml" \
+		"$PWD/Documentation/netlink/specs/rt-link.yaml"
+	cp "$source_tree/Documentation/netlink/netlink-raw.yaml" \
+		"$PWD/Documentation/netlink/netlink-raw.yaml"
 	cp "$source_tree/scripts/subarch.include" "$PWD/scripts/subarch.include"
 
 }
