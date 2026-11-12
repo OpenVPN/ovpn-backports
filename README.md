@@ -64,7 +64,15 @@ If you want to build ovpn against a kernel different from the one running on the
 make KERNEL_SRC=/path/to/the/kernel/tree
 ```
 
-The control is passed to the kernel Makefile, therefore any kernel Makefile argument can be specified on the command line and it will be passed automatically. Once done building, executing the command:
+The control is passed to the kernel Makefile, therefore any kernel Makefile argument can be specified on the command line and it will be passed automatically.
+
+Ubuntu kernels carry API backports that the upstream version doesn't reveal: the Makefile recognizes them by the ABI number and flavor Canonical's packaging records in `generated/utsrelease.h`. A kernel built from an Ubuntu tree in another way (e.g. with `make bindeb-pkg`, possibly with extra patches) lacks them: pass the ABI and flavor of the tree it is based on, e.g. for `Ubuntu-7.0.0-44.44` (generic):
+
+```sh
+make KERNEL_SRC=/path/to/the/kernel/tree OVPN_UBUNTU_RELEASE_ABI=44 OVPN_UBUNTU_FLAVOR=generic
+```
+
+Once done building, executing the command:
 
 ```sh
 make install
