@@ -1,6 +1,6 @@
 diff --git a/tools/testing/selftests/net/ovpn/ovpn-cli.h b/tools/testing/selftests/net/ovpn/ovpn-cli.h
 new file mode 100644
-index 0000000..e48449e
+index 0000000..08c42a7
 --- /dev/null
 +++ b/tools/testing/selftests/net/ovpn/ovpn-cli.h
 @@ -0,0 +1,28 @@

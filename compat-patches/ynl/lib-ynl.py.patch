@@ -1,5 +1,5 @@
 diff --git a/tools/net/ynl/pyynl/lib/ynl.py b/tools/net/ynl/pyynl/lib/ynl.py
-index 8682bf5..b46d9d2 100644
+index fb5acb8..b2e6b15 100644
 --- a/tools/net/ynl/pyynl/lib/ynl.py
 +++ b/tools/net/ynl/pyynl/lib/ynl.py
 @@ -12,6 +12,7 @@ An implementation of the genetlink and raw netlink protocols.
@@ -10,7 +10,7 @@ index 8682bf5..b46d9d2 100644
  import functools
  import os
  import random
-@@ -734,7 +735,11 @@ class YnlFamily(SpecFamily):
+@@ -740,7 +741,11 @@ class YnlFamily(SpecFamily):
          self.sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, self.nlproto.proto_num)
          self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_CAP_ACK, 1)
          self.sock.setsockopt(Netlink.SOL_NETLINK, Netlink.NETLINK_EXT_ACK, 1)

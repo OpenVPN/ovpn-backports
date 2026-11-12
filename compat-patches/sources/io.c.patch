@@ -1,7 +1,8 @@
 diff --git a/drivers/net/ovpn/io.c b/drivers/net/ovpn/io.c
+index 2809e09..f5595d3 100644
 --- a/drivers/net/ovpn/io.c
 +++ b/drivers/net/ovpn/io.c
-@@ -76,7 +76,7 @@
+@@ -105,7 +105,7 @@ static struct metadata_dst *ovpn_rx_tun_dst(const struct ovpn_peer *peer)
  
  	info = &tun_dst->u.tun_info;
  	info->key.tun_id = cpu_to_be64(peer->id);

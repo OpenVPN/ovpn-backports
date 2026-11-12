@@ -1,8 +1,8 @@
 diff --git a/drivers/net/ovpn/peer.c b/drivers/net/ovpn/peer.c
-index c95656c..8677bd6 100644
+index d8ee056..9f999bf 100644
 --- a/drivers/net/ovpn/peer.c
 +++ b/drivers/net/ovpn/peer.c
-@@ -37,6 +37,17 @@ static void unlock_ovpn(struct ovpn_priv *ovpn,
+@@ -39,6 +39,17 @@ static void unlock_ovpn(struct ovpn_priv *ovpn,
  	}
  }
  
@@ -20,7 +20,7 @@ index c95656c..8677bd6 100644
  /**
   * ovpn_peer_keepalive_set - configure keepalive values for peer
   * @peer: the peer to configure
-@@ -62,7 +73,11 @@ void ovpn_peer_keepalive_set(struct ovpn_peer *peer, u32 interval, u32 timeout)
+@@ -64,7 +75,11 @@ void ovpn_peer_keepalive_set(struct ovpn_peer *peer, u32 interval, u32 timeout)
  	/* now that interval and timeout have been changed, kick
  	 * off the worker so that the next delay can be recomputed
  	 */
@@ -32,7 +32,7 @@ index c95656c..8677bd6 100644
  }
  
  /**
-@@ -417,7 +432,7 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
+@@ -436,7 +451,7 @@ static __be32 ovpn_nexthop_from_skb4(struct sk_buff *skb)
  {
  	const struct rtable *rt = skb_rtable(skb);
  
@@ -41,7 +41,7 @@ index c95656c..8677bd6 100644
  		return rt->rt_gw4;
  
  	return ip_hdr(skb)->daddr;
-@@ -798,7 +813,7 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
+@@ -909,7 +924,7 @@ static __be32 ovpn_nexthop_from_rt4(struct ovpn_priv *ovpn, __be32 dest)
  		return dest;
  	}
  
@@ -50,7 +50,7 @@ index c95656c..8677bd6 100644
  		goto out;
  
  	dest = rt->rt_gw4;
-@@ -828,7 +843,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
+@@ -939,7 +954,7 @@ static struct in6_addr ovpn_nexthop_from_rt6(struct ovpn_priv *ovpn,
  		.daddr = dest,
  	};
  
@@ -59,7 +59,7 @@ index c95656c..8677bd6 100644
  	if (IS_ERR(entry)) {
  		net_dbg_ratelimited("%s: no route to host %pI6c\n",
  				    netdev_name(ovpn->dev), &dest);
-@@ -1463,8 +1478,12 @@ void ovpn_peer_keepalive_work(struct work_struct *work)
+@@ -1600,8 +1615,12 @@ void ovpn_peer_keepalive_work(struct work_struct *work)
  		netdev_dbg(ovpn->dev,
  			   "scheduling keepalive work: now=%llu next_run=%llu delta=%llu\n",
  			   next_run, now, next_run - now);

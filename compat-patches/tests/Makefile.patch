@@ -1,5 +1,5 @@
 diff --git a/tools/testing/selftests/net/ovpn/Makefile b/tools/testing/selftests/net/ovpn/Makefile
-index 169f046..cc7a99e 100644
+index 0b65889..dec3b72 100644
 --- a/tools/testing/selftests/net/ovpn/Makefile
 +++ b/tools/testing/selftests/net/ovpn/Makefile
 @@ -2,7 +2,8 @@

@@ -1,5 +1,5 @@
 diff --git a/drivers/net/ovpn/main.c b/drivers/net/ovpn/main.c
-index 0708249..c898d54 100644
+index 2590032..1587860 100644
 --- a/drivers/net/ovpn/main.c
 +++ b/drivers/net/ovpn/main.c
 @@ -75,6 +75,12 @@ static int ovpn_net_init(struct net_device *dev)
@@ -59,7 +59,7 @@ index 0708249..c898d54 100644
  
  /**
   * ovpn_dev_is_valid - check if the netdevice is of type 'ovpn'
-@@ -162,7 +184,11 @@ static void ovpn_setup(struct net_device *dev)
+@@ -163,7 +185,11 @@ static void ovpn_setup(struct net_device *dev)
  
  	dev->needs_free_netdev = true;
  
@@ -71,7 +71,7 @@ index 0708249..c898d54 100644
  
  	dev->ethtool_ops = &ovpn_ethtool_ops;
  	dev->netdev_ops = &ovpn_netdev_ops;
-@@ -195,12 +221,10 @@ static void ovpn_setup(struct net_device *dev)
+@@ -196,12 +222,10 @@ static void ovpn_setup(struct net_device *dev)
  	SET_NETDEV_DEVTYPE(dev, &ovpn_type);
  }
  
@@ -86,7 +86,7 @@ index 0708249..c898d54 100644
  	enum ovpn_mode mode = OVPN_MODE_P2P;
  	int ret;
  
-@@ -213,6 +236,10 @@ static int ovpn_newlink(struct net_device *dev,
+@@ -224,6 +248,10 @@ static int ovpn_newlink(struct net_device *dev,
  	ovpn->mode = mode;
  	spin_lock_init(&ovpn->lock);
  	INIT_DELAYED_WORK(&ovpn->keepalive_work, ovpn_peer_keepalive_work);
@@ -97,7 +97,7 @@ index 0708249..c898d54 100644
  
  	/* Set carrier explicitly after registration, this way state is
  	 * clearly defined.
-@@ -234,6 +262,26 @@ static int ovpn_newlink(struct net_device *dev,
+@@ -245,6 +273,26 @@ static int ovpn_newlink(struct net_device *dev,
  	return 0;
  }
  
@@ -124,7 +124,7 @@ index 0708249..c898d54 100644
  static size_t ovpn_get_size(const struct net_device *dev)
  {
  	/* IFLA_OVPN_MODE */
-@@ -252,10 +302,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
+@@ -268,10 +316,14 @@ static int ovpn_fill_info(struct sk_buff *skb, const struct net_device *dev)
  
  static struct rtnl_link_ops ovpn_link_ops = {
  	.kind = "ovpn",
@@ -139,7 +139,7 @@ index 0708249..c898d54 100644
  	.maxtype = IFLA_OVPN_MAX,
  	.newlink = ovpn_newlink,
  	.get_size = ovpn_get_size,
-@@ -314,3 +368,4 @@ module_exit(ovpn_cleanup);
+@@ -330,3 +382,4 @@ module_exit(ovpn_cleanup);
  MODULE_DESCRIPTION("OpenVPN data channel offload (ovpn)");
  MODULE_AUTHOR("Antonio Quartulli <antonio@openvpn.net>");
  MODULE_LICENSE("GPL");
