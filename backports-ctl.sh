@@ -26,6 +26,7 @@ clean_ovpn_selftests() {
 		"$PWD/tools/testing/selftests/kselftest.h" \
 		"$PWD/tools/testing/selftests/kselftest_harness.h" \
 		"$PWD/tools/testing/selftests/run_kselftest.sh" \
+		"$PWD/tools/testing/selftests/build_report.mk" \
 		"$PWD/tools/net/ynl/pyynl" \
 		"$PWD/Documentation/netlink/specs/ovpn.yaml" \
 		"$PWD/Documentation/netlink/genetlink.yaml" \
@@ -67,6 +68,11 @@ import_ovpn_selftests() {
 		"$PWD/tools/testing/selftests/kselftest_harness.h"
 	cp "$source_tree/tools/testing/selftests/run_kselftest.sh" \
 		"$PWD/tools/testing/selftests/run_kselftest.sh"
+	# included by the selftests Makefile since net-next 7.3
+	if [ -f "$source_tree/tools/testing/selftests/build_report.mk" ]; then
+		cp "$source_tree/tools/testing/selftests/build_report.mk" \
+			"$PWD/tools/testing/selftests/build_report.mk"
+	fi
 	cp -r "$source_tree/tools/net/ynl/pyynl" "$PWD/tools/net/ynl/"
 	cp "$source_tree/Documentation/netlink/specs/ovpn.yaml" \
 		"$PWD/Documentation/netlink/specs/ovpn.yaml"
