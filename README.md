@@ -94,7 +94,7 @@ The module is compiled and tested on the following distributions:
  - Ubuntu 20.04, 22.04, 24.04, 25.10, 26.04
    (including the AWS, Azure, Oracle, IBM and GCP kernels on 26.04)
  - Debian 10, 11, 12, 13
- - Fedora 44
+ - Fedora 45
  - RHEL 8, 9, 10
  - openSUSE Leap 15.6, 16.0
  - openSUSE Tumbleweed
