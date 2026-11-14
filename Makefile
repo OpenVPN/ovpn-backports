@@ -58,9 +58,11 @@ endif
 # Ubuntu backports can change APIs without changing the upstream version.
 # ABI numbers are specific to a kernel series and flavor, so expose both
 # values from the target headers rather than the running kernel.
+# Mainline builds encode upstream versions as zero-prefixed ABIs. Ignore
+# those identifiers so the upstream version checks apply.
 ifneq ("$(wildcard $(KERNEL_SRC)/include/generated/utsrelease.h)","")
 OVPN_UBUNTU_RELEASE_ABI := $(shell \
-	sed -n 's/^\#define UTS_UBUNTU_RELEASE_ABI \([0-9][0-9]*\)$$/\1/p' \
+	sed -n 's/^\#define UTS_UBUNTU_RELEASE_ABI \([1-9][0-9]*\)$$/\1/p' \
 		$(KERNEL_SRC)/include/generated/utsrelease.h)
 ifneq ($(OVPN_UBUNTU_RELEASE_ABI),)
 ccflags-y += -DOVPN_UBUNTU_RELEASE_ABI=$(OVPN_UBUNTU_RELEASE_ABI)
